@@ -150,8 +150,6 @@ MAKE_HOOK(CNetChannel_SendNetMsg, S::CNetChannel_SendNetMsg(), bool,
 			}
 		}
 
-		if (!F::Ticks.m_bSpeedhack)
-		{
 			const int iAllowedNewCommands = std::max(F::Ticks.m_iMaxUsrCmdProcessTicks - F::Ticks.m_iShiftedTicks, 0);
 			const int iCmdCount = pMsg->m_nNewCommands + pMsg->m_nBackupCommands - 3;
 			if (iCmdCount > iAllowedNewCommands)
@@ -159,7 +157,6 @@ MAKE_HOOK(CNetChannel_SendNetMsg, S::CNetChannel_SendNetMsg(), bool,
 				SDK::Output("clc_Move", std::format("{:d} sent <{:d} | {:d}>, max was {:d}.", iCmdCount + 3, pMsg->m_nNewCommands, pMsg->m_nBackupCommands, iAllowedNewCommands).c_str(), { 255, 0, 0, 255 });
 				F::Ticks.m_iDeficit = iCmdCount - iAllowedNewCommands;
 			}
-		}
 
 		return true;
 	}

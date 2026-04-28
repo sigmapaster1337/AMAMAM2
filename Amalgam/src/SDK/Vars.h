@@ -274,6 +274,7 @@ NAMESPACE_BEGIN(Vars)
 			CVar(TickTolerance, "Tick tolerance", 4, SLIDER_CLAMP, 0, 21);
 			CVar(AutoShoot, "Auto shoot", true);
 			CVar(FOVCircle, "FOV Circle", true, VISUAL);
+			CVar(FOVCircleOutline, "FOV Circle outline", false, VISUAL);
 			CVar(NoSpread, "No spread", false);
 
 			CVarEnum(AimHoldsFire, "Aim holds fire", 2, NOSAVE | DEBUGVAR, nullptr,
@@ -470,11 +471,6 @@ NAMESPACE_BEGIN(Vars)
 	NAMESPACE_BEGIN(AutoPeek, Auto Peek)
 		CVar(Enabled, VA_LIST("Enabled", "Auto peek"), false);
 	NAMESPACE_END(AutoPeek)
-
-	NAMESPACE_BEGIN(Speedhack)
-		CVar(Enabled, VA_LIST("Enabled", "Speedhack enabled"), false);
-		CVar(Amount, VA_LIST("Amount", "SpeedHack amount"), 1, NONE, 1, 50);
-	NAMESPACE_END(Speedhack)
 
 	NAMESPACE_BEGIN(AntiAim, Antiaim)
 		CVar(Enabled, VA_LIST("Enabled", "Antiaim enabled"), false);

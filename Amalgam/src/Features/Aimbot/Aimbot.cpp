@@ -91,7 +91,19 @@ void CAimbot::Draw(CTFPlayer* pLocal)
 		return;
 
 	float flRadius = tanf(Math::Deg2Rad(Vars::Aimbot::General::AimFOV.Value)) / tanf(Math::Deg2Rad(G::FOV) / 2) * float(H::Draw.m_nScreenW) * (4.f / 6.f) / (16.f / 9.f);
-	H::Draw.LineCircle(H::Draw.m_nScreenW / 2, H::Draw.m_nScreenH / 2, flRadius, 68, Vars::Colors::FOVCircle.Value);
+	int centerX = H::Draw.m_nScreenW / 2;
+	int centerY = H::Draw.m_nScreenH / 2;
+
+	if (Vars::Aimbot::General::FOVCircleOutline.Value)
+	{
+		H::Draw.LineCircle(centerX, centerY, flRadius + 1, 68, Color_t(0, 0, 0, Vars::Colors::FOVCircle.Value.a));
+		H::Draw.LineCircle(centerX, centerY, flRadius, 68, Vars::Colors::FOVCircle.Value);
+		H::Draw.LineCircle(centerX, centerY, flRadius - 1, 68, Color_t(0, 0, 0, Vars::Colors::FOVCircle.Value.a));
+	}
+	else
+	{
+		H::Draw.LineCircle(centerX, centerY, flRadius, 68, Vars::Colors::FOVCircle.Value);
+	}
 }
 
 void CAimbot::Store(CBaseEntity* pEntity, size_t iSize)

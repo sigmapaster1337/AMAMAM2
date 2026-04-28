@@ -335,7 +335,7 @@ void CMisc::FastMovement(CTFPlayer* pLocal, CUserCmd* pCmd)
 	{
 		if ((pLocal->IsDucking() ? !Vars::Misc::Movement::DuckSpeed.Value : !Vars::Misc::Movement::FastAccelerate.Value)
 			|| Vars::Misc::Game::AntiCheatCompatibility.Value
-			|| G::Attacking == 1 || F::Ticks.m_bDoubletap || F::Ticks.m_bSpeedhack || F::Ticks.m_bRecharge || G::AntiAim)
+			|| G::Attacking == 1 || F::Ticks.m_bDoubletap || F::Ticks.m_bRecharge || G::AntiAim)
 			return;
 
 		if (!(pCmd->buttons & (IN_FORWARD | IN_BACK | IN_MOVELEFT | IN_MOVERIGHT)))

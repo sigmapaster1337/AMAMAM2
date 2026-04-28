@@ -10,10 +10,10 @@ private:
 	void Recharge(CTFPlayer* pLocal);
 	void Warp();
 	void Doubletap(CTFPlayer* pLocal, CUserCmd* pCmd);
-	void Speedhack();
 	bool ValidWeapon(CTFWeaponBase* pWeapon);
 
 	void ManagePacket(CUserCmd* pCmd, bool* pSendPacket);
+	void CorrectTickbase(CTFPlayer* pLocal);
 
 	bool m_bGoalReached = true;
 	Vec3 m_vShootPos = {};
@@ -52,8 +52,8 @@ public:
 	bool m_bDoubletap = false;
 	bool m_bWarp = false;
 	bool m_bRecharge = false;
+	bool m_bAutoRecharge = false; // Track automatic recharging after single press
 	bool m_bAntiWarp = false;
-	bool m_bSpeedhack = false;
 
 	int m_iShiftedTicks = 0;
 	int m_iShiftedGoal = 0;

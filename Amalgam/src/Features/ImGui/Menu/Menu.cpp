@@ -174,9 +174,14 @@ void CMenu::MenuAimbot(int iTab)
 					FToggle(Vars::Aimbot::General::AutoShoot, FToggleEnum::Left);
 					FToggle(Vars::Aimbot::General::FOVCircle, FToggleEnum::Right);
 					FToggle(Vars::CritHack::ForceCrits, FToggleEnum::Left);
-					FToggle(Vars::CritHack::AvoidRandomCrits, FToggleEnum::Right);
-					FToggle(Vars::CritHack::AlwaysMeleeCrit, FToggleEnum::Left);
-					FToggle(Vars::Aimbot::General::NoSpread, FToggleEnum::Right);
+					PushTransparent(!Vars::Aimbot::General::FOVCircle.Value);
+					{
+						FToggle(Vars::Aimbot::General::FOVCircleOutline, FToggleEnum::Right);
+					}
+					PopTransparent();
+					FToggle(Vars::CritHack::AvoidRandomCrits, FToggleEnum::Left);
+					FToggle(Vars::CritHack::AlwaysMeleeCrit, FToggleEnum::Right);
+					FToggle(Vars::Aimbot::General::NoSpread, FToggleEnum::Left);
 				} EndSection();
 				if (Vars::Debug::Options.Value)
 				{
@@ -690,15 +695,6 @@ void CMenu::MenuHVH(int iTab)
 					{
 						FSlider(Vars::CheaterDetection::MinimumFlick, FSliderEnum::Left);
 						FSlider(Vars::CheaterDetection::MaximumNoise, FSliderEnum::Right);
-					}
-					PopTransparent();
-				} EndSection();
-				if (Section("Speedhack", 8))
-				{
-					FToggle(Vars::Speedhack::Enabled);
-					PushTransparent(!Vars::Speedhack::Enabled.Value);
-					{
-						FSlider(Vars::Speedhack::Amount);
 					}
 					PopTransparent();
 				} EndSection();

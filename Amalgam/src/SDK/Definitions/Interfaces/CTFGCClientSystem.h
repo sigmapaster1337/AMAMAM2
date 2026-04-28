@@ -10,6 +10,15 @@ MAKE_SIGNATURE(CTFGCClientSystem_GetParty, "client.dll", "48 83 EC ? 48 8B 89 ? 
 
 MAKE_SIGNATURE(CTFParty_SpewDebug, "client.dll", "4C 8B DC 41 56 48 81 EC ? ? ? ? 8B 05", 0x0);
 
+enum TF_GC_TEAM {
+	TF_GC_TEAM_DEFENDERS = 0,
+	TF_GC_TEAM_INVADERS = 1,
+	TF_GC_TEAM_BROADCASTER = 2,
+	TF_GC_TEAM_SPECTATOR = 3,
+	TF_GC_TEAM_PLAYER_POOL = 4,
+	TF_GC_TEAM_NOTEAM = 5
+};
+
 class CGCClientSharedObjectTypeCache
 {
 public:

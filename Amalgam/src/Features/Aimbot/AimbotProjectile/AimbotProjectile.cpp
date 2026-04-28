@@ -310,6 +310,8 @@ static inline std::vector<Target_t> GetTargets(CTFPlayer* pLocal, CTFWeaponBase*
 
 			float flDistTo = vLocalPos.DistToSqr(vPos);
 			int iPriority = F::AimbotGlobal.GetPriority(pEntity->entindex());
+			if (!F::AimbotGlobal.ShouldTargetPriority(iPriority))
+				continue;
 			if (bTeam && bHeal)
 			{
 				iPriority = 0;
@@ -389,6 +391,8 @@ static inline std::vector<Target_t> GetTargets(CTFPlayer* pLocal, CTFWeaponBase*
 
 					float flDistTo = vLocalPos.DistToSqr(vSortPos);
 					int iPriority = F::AimbotGlobal.GetPriority(n);
+					if (!F::AimbotGlobal.ShouldTargetPriority(iPriority))
+						continue;
 					auto& tTarget = vTargets.emplace_back(pPlayer, TargetEnum::Player, vSortPos, vAngleTo, flFOVTo, flDistTo, iPriority);
 					tTarget.m_bDormant = true;
 					tTarget.m_vDormantPos = vDormantPos;

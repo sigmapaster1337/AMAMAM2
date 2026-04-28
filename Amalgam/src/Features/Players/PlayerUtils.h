@@ -127,6 +127,8 @@ public:
 	const char* GetPlayerName(int iIndex);
 	const char* GetPlayerName(uint32_t uAccountID);
 
+	int GetConnectingPlayerTeam(uint32_t uAccountID);
+
 	std::vector<int>& GetPlayerTags(uint32_t uAccountID) { return m_mPlayerTags.contains(uAccountID) ? m_mPlayerTags[uAccountID] : m_vDummy; }
 	std::string* GetPlayerAlias(uint32_t uAccountID) { return m_mPlayerAliases.contains(uAccountID) ? &m_mPlayerAliases[uAccountID] : nullptr; }
 };

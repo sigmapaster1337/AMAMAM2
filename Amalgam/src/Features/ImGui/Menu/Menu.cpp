@@ -182,6 +182,7 @@ void CMenu::MenuAimbot(int iTab)
 					FToggle(Vars::CritHack::AvoidRandomCrits, FToggleEnum::Left);
 					FToggle(Vars::CritHack::AlwaysMeleeCrit, FToggleEnum::Right);
 					FToggle(Vars::Aimbot::General::NoSpread, FToggleEnum::Left);
+					FToggle(Vars::Aimbot::General::OnlyPriority, FToggleEnum::Right);
 				} EndSection();
 				if (Vars::Debug::Options.Value)
 				{
@@ -1023,6 +1024,9 @@ void CMenu::MenuVisuals(int iTab)
 						FSlider("Offset", &tGroup.m_iOffscreenArrowsOffset, 0, 1000, 25, "%i", FSliderEnum::Precision);
 						FSlider("Max distance", &tGroup.m_flOffscreenArrowsMaxDistance, 0.f, 5000.f, 50.f, "%g", FSliderEnum::Min | FSliderEnum::Precision);
 
+						FToggle(Vars::Visuals::OffscreenArrows::PriorityOnly, FToggleEnum::Left);
+						SameLine();
+
 						EndPopup();
 					}
 
@@ -1099,13 +1103,13 @@ void CMenu::MenuVisuals(int iTab)
 						FSlider(Vars::Visuals::UI::ZoomFieldOfView);
 					}
 					PopTransparent();
-					/*
+					
 					PushTransparent(!Vars::Visuals::UI::AspectRatio.Value);
 					{
 						FSlider(Vars::Visuals::UI::AspectRatio);
 					}
 					PopTransparent();
-					*/
+					
 					FToggle(Vars::Visuals::UI::RevealScoreboard, FToggleEnum::Left);
 					FToggle(Vars::Visuals::UI::ScoreboardUtility, FToggleEnum::Right);
 					FToggle(Vars::Visuals::UI::ScoreboardColors, FToggleEnum::Left);
@@ -2319,6 +2323,15 @@ void CMenu::MenuLogs(int iTab)
 					PushTransparent(!(Vars::Logging::Logs.Value & Vars::Logging::LogsEnum::ClassChanges));
 					{
 						FDropdown(Vars::Logging::ClassChange::LogTo);
+					}
+					PopTransparent();
+				} EndSection();
+				if (Section("Team reveal"))
+				{
+					PushTransparent(!(Vars::Logging::Logs.Value & Vars::Logging::LogsEnum::TeamReveal));
+					{
+						FDropdown(Vars::Logging::TeamReveal::LogTo);
+						FToggle(Vars::Logging::TeamReveal::OnlyPriority, FToggleEnum::Left);
 					}
 					PopTransparent();
 				} EndSection();

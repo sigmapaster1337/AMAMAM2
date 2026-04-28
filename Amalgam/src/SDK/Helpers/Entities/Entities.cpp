@@ -516,13 +516,14 @@ bool CEntities::IsHealth(uint32_t uHash)
 	case FNV1A::Hash32Const("models/items/plate_sandwich_xmas.mdl"):
 	case FNV1A::Hash32Const("models/items/plate_robo_sandwich.mdl"):
 	case FNV1A::Hash32Const("models/props_medieval/medieval_meat.mdl"):
-	case FNV1A::Hash32Const("models/workshopweapons/c_models/c_chocolate/plate_chocolate.mdl"):
-	case FNV1A::Hash32Const("models/workshopweapons/c_models/c_fishcake/plate_fishcake.mdl"):
+	case FNV1A::Hash32Const("models/workshop/weapons/c_models/c_chocolate/plate_chocolate.mdl"):
+	case FNV1A::Hash32Const("models/workshop/weapons/c_models/c_fishcake/plate_fishcake.mdl"):
 	case FNV1A::Hash32Const("models/props_halloween/halloween_medkit_small.mdl"):
 	case FNV1A::Hash32Const("models/props_halloween/halloween_medkit_medium.mdl"):
 	case FNV1A::Hash32Const("models/props_halloween/halloween_medkit_large.mdl"):
 	case FNV1A::Hash32Const("models/items/ld1/mushroom_large.mdl"):
 	case FNV1A::Hash32Const("models/items/plate_steak.mdl"):
+	case FNV1A::Hash32Const("models/workshop/weapons/c_models/c_buffalo_steak/plate_buffalo_steak.mdl"):
 	case FNV1A::Hash32Const("models/props_brine/foodcan.mdl"):
 		return true;
 	}
@@ -600,6 +601,62 @@ CTFWeaponBase* CEntities::GetWeapon()
 CTFPlayerResource* CEntities::GetResource()
 {
 	return m_pPlayerResource;
+}
+
+int CEntities::GetLobbyPlayerTeam(uint32_t uAccountID)
+{
+	auto pLobby = I::TFGCClientSystem->GetLobby();
+	if (!pLobby)
+		return 0; // 0 = unknown/no team
+
+	int iMembers = pLobby->GetNumMembers();
+	for (int i = 0; i < iMembers; i++)
+	{
+		ConstTFLobbyPlayer pDetails;
+		pLobby->GetMemberDetails(&pDetails, i);
+
+		auto pProto = pDetails.Proto();
+		// Convert uint64 to CSteamID and get account ID
+		CSteamID steamID(pProto->id);
+		uint32_t playerAccountID = steamID.GetAccountID();
+
+		if (playerAccountID == uAccountID)
+		{
+			// Convert GC team to game team
+			switch (pProto->team)
+			{
+			case 1: return 3; // TF_GC_TEAM_DEFENDERS -> BLU
+			case 0: return 2; // TF_GC_TEAM_INVADERS -> RED
+			case 3: return 1; // TF_GC_TEAM_SPECTATOR -> Spectator
+			default: return 0;
+			}
+		}
+	}
+
+	return 0;
+}
+
+TF_GC_TEAM CEntities::GetGCLobbyPlayerTeam(uint32_t uAccountID)
+{
+	auto pLobby = I::TFGCClientSystem->GetLobby();
+	if (!pLobby)
+		return TF_GC_TEAM_NOTEAM;
+
+	int iMembers = pLobby->GetNumMembers();
+	for (int i = 0; i < iMembers; i++)
+	{
+		ConstTFLobbyPlayer pDetails;
+		pLobby->GetMemberDetails(&pDetails, i);
+
+		auto pProto = pDetails.Proto();
+		CSteamID steamID(pProto->id);
+		uint32_t playerAccountID = steamID.GetAccountID();
+
+		if (playerAccountID == uAccountID)
+			return (TF_GC_TEAM)pProto->team;
+	}
+
+	return TF_GC_TEAM_NOTEAM;
 }
 
 const std::vector<CBaseEntity*>& CEntities::GetGroup(byte iGroup) { return m_aGroups[iGroup]; }

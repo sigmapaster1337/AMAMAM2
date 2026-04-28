@@ -1,6 +1,7 @@
 #include "OffscreenArrows.h"
 
 #include "../Groups/Groups.h"
+#include "../../Players/PlayerUtils.h"
 
 void COffscreenArrows::DrawArrowTo(const Vec3& vFromPos, const Vec3& vToPos, Color_t tColor, int iOffset, float flMaxDistance)
 {
@@ -63,6 +64,50 @@ void COffscreenArrows::Store()
 		if (!pGroup->m_bOffscreenArrows
 			|| pEntity->entindex() == I::EngineClient->GetLocalPlayer())
 			continue;
+
+		// If priority only is enabled
+		if (Vars::Visuals::OffscreenArrows::PriorityOnly.Value)
+		{
+			// Only players can pass through
+			if (!pEntity->IsPlayer())
+				continue; // Skip buildings, projectiles, etc.
+
+			// Check if this player has priority
+			auto pPlayer = pEntity->As<CTFPlayer>();
+			int iIndex = pPlayer->entindex();
+			uint32_t uAccountID = H::Entities.GetAccountID(iIndex);
+
+			// Check if player has any priority tags
+			bool bHasPriority = false;
+
+			// Check for special tags (Cheater, Ignored, F2P)
+			if (F::PlayerUtils.HasTag(uAccountID, F::PlayerUtils.TagToIndex(CHEATER_TAG)))
+				bHasPriority = true;
+			else if (F::PlayerUtils.HasTag(uAccountID, F::PlayerUtils.TagToIndex(IGNORED_TAG)))
+				bHasPriority = true;
+			else if (F::PlayerUtils.HasTag(uAccountID, F::PlayerUtils.TagToIndex(F2P_TAG)))
+				bHasPriority = true;
+
+			// Check for any user-added priority tags (non-label tags with priority != 0)
+			if (!bHasPriority && F::PlayerUtils.HasTags(uAccountID))
+			{
+				auto& vTags = F::PlayerUtils.GetPlayerTags(uAccountID);
+				for (int iID : vTags)
+				{
+					auto pTag = F::PlayerUtils.GetTag(iID);
+					// If it's not a label and has non-zero priority, count as priority
+					if (pTag && !pTag->m_bLabel && pTag->m_iPriority != 0)
+					{
+						bHasPriority = true;
+						break;
+					}
+				}
+			}
+
+			// Skip if no priority found
+			if (!bHasPriority)
+				continue;
+		}
 
 		ArrowCache_t& tCache = m_mCache[pEntity];
 		tCache.m_tColor = F::Groups.GetColor(pEntity, pGroup);

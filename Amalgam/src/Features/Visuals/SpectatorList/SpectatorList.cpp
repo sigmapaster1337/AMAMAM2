@@ -122,8 +122,14 @@ void CSpectatorList::Draw(CTFPlayer* pLocal)
 	{
 		y += nTall;
 
+		bool bIsF2P = H::Entities.IsF2P(tSpectator.m_iIndex);
+
 		Color_t tColor = Vars::Menu::Theme::Active.Value;
-		if (H::Entities.IsFriend(tSpectator.m_iIndex))
+		if (bIsF2P)
+		{
+			tColor = F::PlayerUtils.m_vTags[F::PlayerUtils.TagToIndex(F2P_TAG)].m_tColor;
+		}
+		else if (H::Entities.IsFriend(tSpectator.m_iIndex))
 			tColor = F::PlayerUtils.m_vTags[F::PlayerUtils.TagToIndex(FRIEND_TAG)].m_tColor;
 		else if (H::Entities.InParty(tSpectator.m_iIndex))
 			tColor = F::PlayerUtils.m_vTags[F::PlayerUtils.TagToIndex(PARTY_TAG)].m_tColor;
@@ -133,8 +139,18 @@ void CSpectatorList::Draw(CTFPlayer* pLocal)
 			tColor = { 255, 0, 0, 255 };
 
 		if (tSpectator.m_flRespawnIn != -1.f)
-			H::Draw.StringOutlined(fFont, x + iconOffset, y, tColor, Vars::Menu::Theme::Background.Value, align, std::format("{} {} (respawn {}s)", tSpectator.m_sName, tSpectator.m_sMode, tSpectator.m_flRespawnIn).c_str());
+		{
+			std::string sDisplay = std::format("{} {} (respawn {}s)", tSpectator.m_sName, tSpectator.m_sMode, tSpectator.m_flRespawnIn);
+			if (bIsF2P)
+				sDisplay += " (F2P)";
+			H::Draw.StringOutlined(fFont, x + iconOffset, y, tColor, Vars::Menu::Theme::Background.Value, align, sDisplay.c_str());
+		}
 		else
-			H::Draw.StringOutlined(fFont, x + iconOffset, y, tColor, Vars::Menu::Theme::Background.Value, align, std::format("{} {}", tSpectator.m_sName, tSpectator.m_sMode).c_str());
+		{
+			std::string sDisplay = std::format("{} {}", tSpectator.m_sName, tSpectator.m_sMode);
+			if (bIsF2P)
+				sDisplay += " (F2P)";
+			H::Draw.StringOutlined(fFont, x + iconOffset, y, tColor, Vars::Menu::Theme::Background.Value, align, sDisplay.c_str());
+		}
 	}
 }

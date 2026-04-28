@@ -6,6 +6,7 @@
 static std::string s_sRed =		Color_t(255, 100, 100).ToHex();
 static std::string s_sGreen =		Color_t(100, 255, 100).ToHex();
 static std::string s_sYellow =	Color_t(200, 169, 0).ToHex();
+static std::string s_sBlue = Color_t(100, 150, 200).ToHex();
 
 static inline void OutputInfo(int iFlags, const char* sName, const char* sOutput, const char* sChat)
 {
@@ -20,6 +21,32 @@ static inline void OutputInfo(int iFlags, const char* sName, const char* sOutput
 	iTo = (iFlags & Vars::Logging::LogToEnum::Chat ? OUTPUT_CHAT : 0);
 	if (iTo)
 		SDK::Output(Vars::Menu::CheatTag.Value.c_str(), sChat, Vars::Menu::Theme::Accent.Value, iTo, -1, "", "");
+}
+
+static inline void OutputTeamInfo(int iFlags, const char* sName, const char* sTeam, Color_t tColor)
+{
+	// Only output if TeamReveal is enabled in logs
+	if (!(Vars::Logging::Logs.Value & Vars::Logging::LogsEnum::TeamReveal))
+		return;
+
+
+	int iTo = (iFlags & Vars::Logging::LogToEnum::Console ? OUTPUT_CONSOLE : 0)
+		| (iFlags & Vars::Logging::LogToEnum::Debug ? OUTPUT_DEBUG : 0)
+		| (iFlags & Vars::Logging::LogToEnum::Toasts ? OUTPUT_TOAST : 0)
+		| (iFlags & Vars::Logging::LogToEnum::Menu ? OUTPUT_MENU : 0)
+		| (iFlags & Vars::Logging::LogToEnum::Party ? OUTPUT_PARTY : 0);
+	if (iTo)
+		SDK::Output("Team Info", std::format("{} will join {}", sName, sTeam).c_str(), Vars::Menu::Theme::Accent.Value, iTo);
+
+	iTo = (iFlags & Vars::Logging::LogToEnum::Chat ? OUTPUT_CHAT : 0);
+	if (iTo) {
+		SDK::Output(Vars::Menu::CheatTag.Value.c_str(),
+			std::format("{}{}\x1 will join {}{}",
+				s_sYellow, sName,
+				sTeam == "RED" ? s_sRed : sTeam == "BLU" ? s_sBlue : s_sYellow, sTeam).c_str(),
+			Vars::Menu::Theme::Accent.Value,
+			iTo, -1, "", "");
+	}
 }
 
 // Event info
@@ -117,7 +144,10 @@ void COutput::Event(IGameEvent* pEvent, uint32_t uHash, CTFPlayer* pLocal)
 	}
 	case FNV1A::Hash32Const("player_connect_client"): // tags/alias (player join)
 	{
-		if (!(Vars::Logging::Logs.Value & Vars::Logging::LogsEnum::Tags) && !(Vars::Logging::Logs.Value & Vars::Logging::LogsEnum::Aliases) || m_bInfoOnJoin)
+		if (!(Vars::Logging::Logs.Value & Vars::Logging::LogsEnum::Tags) &&
+			!(Vars::Logging::Logs.Value & Vars::Logging::LogsEnum::Aliases) &&
+			!(Vars::Logging::Logs.Value & Vars::Logging::LogsEnum::TeamReveal) ||
+			m_bInfoOnJoin)
 			return;
 
 		std::string sID = pEvent->GetString("networkid");
@@ -134,16 +164,48 @@ void COutput::Event(IGameEvent* pEvent, uint32_t uHash, CTFPlayer* pLocal)
 				return;
 
 			auto sName = pEvent->GetString("name");
-			TagsOnJoin(sName, uAccountID);
-			AliasOnJoin(sName, uAccountID);
+			// Get player priority
+			int iPriority = F::PlayerUtils.GetPriority(uAccountID, false);
+
+			// Get predicted team
+			int iPredictedTeam = F::PlayerUtils.GetConnectingPlayerTeam(uAccountID);
+			// Only show if we have a valid team prediction (RED or BLU)
+			if (iPredictedTeam == 2 || iPredictedTeam == 3) {
+				std::string sTeamDisplay = iPredictedTeam == 2 ? "RED" : "BLU";
+				Color_t teamColor = iPredictedTeam == 2 ? Color_t(255, 100, 100, 255) : Color_t(100, 150, 200, 255);
+
+				// Check priority filter
+				bool bShouldShow = true;
+				if (Vars::Logging::TeamReveal::OnlyPriority.Value) {
+					bShouldShow = (iPriority > 0);
+				}
+
+				if (bShouldShow) {
+					OutputTeamInfo(Vars::Logging::TeamReveal::LogTo.Value, sName, sTeamDisplay.c_str(), teamColor);
+				}
+			}
+
+			std::string sTeamInfo = iPredictedTeam == 2 ? " (RED)" : iPredictedTeam == 3 ? " (BLU)" : "";
+			std::string sNameWithTeam = std::string(sName) + sTeamInfo;
+
+			// Only do tags/aliases if those are enabled
+			if (Vars::Logging::Logs.Value & Vars::Logging::LogsEnum::Tags) {
+				TagsOnJoin(sNameWithTeam.c_str(), uAccountID);
+			}
+			if (Vars::Logging::Logs.Value & Vars::Logging::LogsEnum::Aliases) {
+				AliasOnJoin(sNameWithTeam.c_str(), uAccountID);
+			}
 		}
 		catch (...) {}
 
 		return;
 	}
-	case FNV1A::Hash32Const("player_spawn"): // tags/alias (local join)
+	// Update the player_spawn case
+	case FNV1A::Hash32Const("player_spawn"):
 	{
-		if (!(Vars::Logging::Logs.Value & (1 << 5)) && !(Vars::Logging::Logs.Value & (1 << 6)) || !m_bInfoOnJoin)
+		if (!(Vars::Logging::Logs.Value & Vars::Logging::LogsEnum::Tags) &&
+			!(Vars::Logging::Logs.Value & Vars::Logging::LogsEnum::Aliases) ||
+			!m_bInfoOnJoin)
 			return;
 
 		if (I::EngineClient->GetPlayerForUserID(pEvent->GetInt("userid")) != I::EngineClient->GetLocalPlayer())
@@ -162,8 +224,13 @@ void COutput::Event(IGameEvent* pEvent, uint32_t uHash, CTFPlayer* pLocal)
 
 			auto sName = pResource->GetName(n);
 			uint32_t uAccountID = pResource->m_iAccountID(n);
-			TagsOnJoin(sName, uAccountID);
-			AliasOnJoin(sName, uAccountID);
+
+			if (Vars::Logging::Logs.Value & Vars::Logging::LogsEnum::Tags) {
+				TagsOnJoin(sName, uAccountID);
+			}
+			if (Vars::Logging::Logs.Value & Vars::Logging::LogsEnum::Aliases) {
+				AliasOnJoin(sName, uAccountID);
+			}
 		}
 	}
 	}

@@ -439,7 +439,20 @@ const char* CPlayerlistUtils::GetPlayerName(uint32_t uAccountID)
 	return pResource && pResource->IsValid(iIndex) ? pResource->GetName(iIndex) : PLAYER_ERROR_NAME;
 }
 
+int CPlayerlistUtils::GetConnectingPlayerTeam(uint32_t uAccountID)
+{
+	// First check if player is already in game
+	int iIndex = GetIndex(uAccountID);
+	if (iIndex)
+	{
+		auto pPlayer = I::ClientEntityList->GetClientEntity(iIndex)->As<CTFPlayer>();
+		if (pPlayer && pPlayer->IsPlayer())
+			return pPlayer->m_iTeamNum();
+	}
 
+	// Check lobby for team assignment
+	return H::Entities.GetLobbyPlayerTeam(uAccountID);
+}
 
 void CPlayerlistUtils::Store()
 {

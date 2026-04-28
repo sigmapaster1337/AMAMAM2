@@ -274,6 +274,7 @@ NAMESPACE_BEGIN(Vars)
 			CVar(FOVCircle, "FOV Circle", true, VISUAL);
 			CVar(FOVCircleOutline, "FOV Circle outline", false, VISUAL);
 			CVar(NoSpread, "No spread", false);
+			CVar(OnlyPriority, "Only priority", false);
 
 			CVarEnum(AimHoldsFire, "Aim holds fire", 2, NOSAVE | DEBUGVAR, nullptr,
 				VA_LIST("False", "Minigun only", "Always"),
@@ -530,6 +531,11 @@ NAMESPACE_BEGIN(Vars)
 	NAMESPACE_END(ESP)
 
 	NAMESPACE_BEGIN(Visuals)
+
+		NAMESPACE_BEGIN(OffscreenArrows, "Offscreen arrows")
+		CVar(PriorityOnly, "Priority only", false);
+		NAMESPACE_END(OffscreenArrows);
+
 		NAMESPACE_BEGIN(UI)
 			CVarEnum(StreamerMode, "Streamer mode", 0, VISUAL, nullptr,
 				VA_LIST("Off", "Local", "Friends", "Party", "All"),
@@ -834,8 +840,8 @@ NAMESPACE_BEGIN(Vars)
 
 	NAMESPACE_BEGIN(Logging)
 		CVarEnum(Logs, "Logs", 0b0000011, DROPDOWN_MULTI, "Off",
-			VA_LIST("Vote start", "Vote cast", "Class changes", "Damage", "Cheat detection", "Tags", "Aliases", "Resolver"),
-			VoteStart = 1 << 0, VoteCast = 1 << 1, ClassChanges = 1 << 2, Damage = 1 << 3, CheatDetection = 1 << 4, Tags = 1 << 5, Aliases = 1 << 6, Resolver = 1 << 7);
+			VA_LIST("Vote start", "Vote cast", "Class changes", "Damage", "Cheat detection", "Tags", "Aliases", "Resolver", "Team reveal"),
+			VoteStart = 1 << 0, VoteCast = 1 << 1, ClassChanges = 1 << 2, Damage = 1 << 3, CheatDetection = 1 << 4, Tags = 1 << 5, Aliases = 1 << 6, Resolver = 1 << 7, TeamReveal = 1 << 8);
 		Enum(LogTo, Toasts = 1 << 0, Chat = 1 << 1, Party = 1 << 2, Console = 1 << 3, Menu = 1 << 4, Debug = 1 << 5);
 		CVarEnum(NotificationPosition, "Notification position", 0, VISUAL, nullptr,
 			VA_LIST("Top left", "Top right", "Bottom left", "Bottom right"),
@@ -881,6 +887,13 @@ NAMESPACE_BEGIN(Vars)
 			CVarValues(LogTo, VA_LIST("Log to", "Resolver log to"), 0b000001, DROPDOWN_MULTI, nullptr,
 				"Toasts", "Chat", "Party", "Console", "Menu", "Debug");
 		NAMESPACE_END(Resolver)
+
+		NAMESPACE_BEGIN(TeamReveal, Logging)
+			CVarValues(LogTo, VA_LIST("Log to", "Team reveal log to"), 0b000001, DROPDOWN_MULTI, nullptr,
+				"Toasts", "Chat", "Party", "Console", "Menu", "Debug");
+		CVar(OnlyPriority, "Only priority", false);
+		NAMESPACE_END(TeamReveal);
+
 	NAMESPACE_END(Logging)
 
 	NAMESPACE_BEGIN(Debug)

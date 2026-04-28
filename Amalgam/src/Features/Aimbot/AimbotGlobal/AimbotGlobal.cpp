@@ -53,6 +53,15 @@ void CAimbotGlobal::SortTargetsPost(std::vector<Target_t>& vTargets, int iMethod
 		});
 }
 
+bool CAimbotGlobal::ShouldTargetPriority(int iPriority)
+{
+	if (!Vars::Aimbot::General::OnlyPriority.Value)
+		return true; // If toggle is off, always target
+
+	// Only target if priority is greater than 0
+	return iPriority > 0;
+}
+
 // this won't prevent shooting bones outside of fov
 bool CAimbotGlobal::PlayerBoneInFOV(CTFPlayer* pTarget, Vec3 vLocalPos, Vec3 vLocalAngles, float& flFOVTo, Vec3& vPos, Vec3& vAngleTo, int iHitboxes)
 {

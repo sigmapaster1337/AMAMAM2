@@ -47,6 +47,8 @@ static inline std::vector<Target_t> GetTargets(CTFPlayer* pLocal, CTFWeaponBase*
 			float flDistTo = vLocalPos.DistToSqr(vPos);
 			bool bTeam = pEntity->m_iTeamNum() == pLocal->m_iTeamNum();
 			int iPriority = F::AimbotGlobal.GetPriority(pEntity->entindex());
+			if (!F::AimbotGlobal.ShouldTargetPriority(iPriority))
+				continue;
 			if (bTeam && !F::AimbotGlobal.FriendlyFire())
 				iPriority = 0;
 			vTargets.emplace_back(pEntity, TargetEnum::Player, vPos, vAngleTo, flFOVTo, flDistTo, iPriority);

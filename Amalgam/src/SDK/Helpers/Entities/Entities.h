@@ -2,6 +2,7 @@
 #include "../../../Utils/Macros/Macros.h"
 #include "../../Definitions/Classes.h"
 #include "../../Vars.h"
+#include "../../Definitions/Interfaces/CTFGCClientSystem.h"
 
 Enum(Entity,
 	PlayerAll, PlayerEnemy, PlayerTeam,
@@ -105,6 +106,17 @@ public:
 	int GetParty(int iIndex);
 	int GetParty(uint32_t uAccountID);
 	int GetPartyCount();
+
+	uint32_t GetAccountID(int iIndex)
+	{
+		auto pResource = GetResource();
+		if (pResource && pResource->m_bValid(iIndex) && !pResource->IsFakePlayer(iIndex))
+			return pResource->m_iAccountID(iIndex);
+		return 0;
+	}
+
+	int GetLobbyPlayerTeam(uint32_t uAccountID);
+	TF_GC_TEAM GetGCLobbyPlayerTeam(uint32_t uAccountID);
 };
 
 ADD_FEATURE_CUSTOM(CEntities, Entities, H);

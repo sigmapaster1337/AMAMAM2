@@ -48,7 +48,7 @@ bool CSpectatorList::GetSpectators(CTFPlayer* pTarget)
 			continue;
 		}
 
-		const char* sMode = "possible";
+		const char* sMode = "(possible)";
 		if (!pPlayer->IsDormant())
 		{
 			switch (iObserverMode)

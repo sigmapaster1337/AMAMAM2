@@ -371,12 +371,12 @@ NAMESPACE_BEGIN(Vars)
 				VA_LIST("Face", "Trace"),
 				Face, Trace);
 			CVar(SplashAirCount, "Splash air count", 0, NOSAVE | DEBUGVAR | SLIDER_MIN, 0, 10);
-			CVar(SplashPointsDirect, "Splash points direct", 100, NOSAVE | DEBUGVAR | SLIDER_MIN | SLIDER_PRECISION, 0, 400, 5);
-			CVar(SplashPointsArc, "Splash points arc", 100, NOSAVE | DEBUGVAR | SLIDER_MIN | SLIDER_PRECISION, 0, 400, 5);
+			CVar(SplashPointsDirect, "Splash points direct", 100, SLIDER_MIN | SLIDER_PRECISION, 0, 1000, 5);
+			CVar(SplashPointsArc, "Splash points arc", 100, SLIDER_MIN | SLIDER_PRECISION, 0, 1000, 5);
 			CVar(SplashRotateX, "Splash Rx", -1.f, NOSAVE | DEBUGVAR | SLIDER_MIN | SLIDER_PRECISION, -1.f, 360.f);
 			CVar(SplashRotateY, "Splash Ry", -1.f, NOSAVE | DEBUGVAR | SLIDER_MIN | SLIDER_PRECISION, -1.f, 360.f);
-			CVar(SplashDensityDirect, "Splash density direct", 40.f, NOSAVE | DEBUGVAR | SLIDER_MIN | SLIDER_PRECISION, 0.f, 100.f, 1.f);
-			CVar(SplashDensityArc, "Splash density arc", 40.f, NOSAVE | DEBUGVAR | SLIDER_MIN | SLIDER_PRECISION, 0.f, 100.f, 1.f);
+			CVar(SplashDensityDirect, "Splash density direct", 40.f, SLIDER_MIN | SLIDER_PRECISION, 0.f, 1000.f, 1.f);
+			CVar(SplashDensityArc, "Splash density arc", 40.f, SLIDER_MIN | SLIDER_PRECISION, 0.f, 1000.f, 1.f);
 			CVar(SplashSamplesCutoff, "Splash samples cutoff", 0.0000001f, NOSAVE | DEBUGVAR | SLIDER_MIN | SLIDER_PRECISION, 0.f, 0.000001f, 0.00000001f);
 			CVar(SplashRestrictDirect, "Splash restrict direct", 100, NOSAVE | DEBUGVAR | SLIDER_MIN | SLIDER_PRECISION, 1, 400, 5);
 			CVar(SplashRestrictArc, "Splash restrict arc", 5, NOSAVE | DEBUGVAR | SLIDER_MIN | SLIDER_PRECISION, 1, 400, 5);

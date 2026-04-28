@@ -253,6 +253,10 @@ void CMenu::MenuAimbot(int iTab)
 				{
 					FDropdown(Vars::Aimbot::Projectile::StrafePrediction, FDropdownEnum::Left);
 					FDropdown(Vars::Aimbot::Projectile::SplashPrediction, FDropdownEnum::Right);
+					FSlider(Vars::Aimbot::Projectile::SplashPointsDirect, FSliderEnum::Left);
+					FSlider(Vars::Aimbot::Projectile::SplashPointsArc, FSliderEnum::Right);
+					FSlider(Vars::Aimbot::Projectile::SplashDensityDirect, FSliderEnum::Left);
+					FSlider(Vars::Aimbot::Projectile::SplashDensityArc, FSliderEnum::Right);
 					FDropdown(Vars::Aimbot::Projectile::AutoDetonate, FDropdownEnum::Left);
 					FDropdown(Vars::Aimbot::Projectile::AutoAirblast, FDropdownEnum::Right);
 					FDropdown(Vars::Aimbot::Projectile::Hitboxes, FDropdownEnum::Left);
@@ -323,16 +327,12 @@ void CMenu::MenuAimbot(int iTab)
 						FDropdown(Vars::Aimbot::Projectile::SplashMode);
 						PushTransparent(Vars::Aimbot::Projectile::SplashMode.Value != Vars::Aimbot::Projectile::SplashModeEnum::Trace);
 						{
-							FSlider(Vars::Aimbot::Projectile::SplashPointsDirect, FSliderEnum::Left);
-							FSlider(Vars::Aimbot::Projectile::SplashPointsArc, FSliderEnum::Right);
 							FSlider(Vars::Aimbot::Projectile::SplashRotateX, FSliderEnum::Left, Vars::Aimbot::Projectile::SplashRotateX[DEFAULT_BIND] < 0.f ? "random" : "%g");
 							FSlider(Vars::Aimbot::Projectile::SplashRotateY, FSliderEnum::Right, Vars::Aimbot::Projectile::SplashRotateY[DEFAULT_BIND] < 0.f ? "random" : "%g");
 						}
 						PopTransparent();
 						PushTransparent(Vars::Aimbot::Projectile::SplashMode.Value != Vars::Aimbot::Projectile::SplashModeEnum::Face);
 						{
-							FSlider(Vars::Aimbot::Projectile::SplashDensityDirect, FSliderEnum::Left);
-							FSlider(Vars::Aimbot::Projectile::SplashDensityArc, FSliderEnum::Right);
 							FSlider(Vars::Aimbot::Projectile::SplashSamplesCutoff);
 						}
 						PopTransparent();

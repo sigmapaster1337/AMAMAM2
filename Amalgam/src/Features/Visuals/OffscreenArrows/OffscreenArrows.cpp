@@ -4,7 +4,8 @@
 
 void COffscreenArrows::DrawArrowTo(const Vec3& vFromPos, const Vec3& vToPos, Color_t tColor, int iOffset, float flMaxDistance)
 {
-	tColor.a *= Math::RemapVal(vFromPos.DistTo(vToPos), flMaxDistance, flMaxDistance * 0.9f, 0.f, 1.f);
+	float flMap = Math::RemapVal(vFromPos.DistTo(vToPos), flMaxDistance, flMaxDistance * 0.9f, 0.f, 1.f);
+	tColor.a = byte(flMap * 255.f);
 	if (!tColor.a)
 		return;
 
@@ -25,21 +26,23 @@ void COffscreenArrows::DrawArrowTo(const Vec3& vFromPos, const Vec3& vToPos, Col
 	const float flSin = sin(flDeg);
 
 	float flOffset = -iOffset;
-	float flScale = H::Draw.Scale(25);
+	float flBase = H::Draw.Scale(20);
+	float flHeight = H::Draw.Scale(22);
 
 	Vec2 vPos = { flOffset * flCos, flOffset * flSin };
-	if (fabs(vPos.x) > vCenter.x - flScale || fabs(vPos.y) > vCenter.y - flScale)
+	if (fabs(vPos.x) > vCenter.x - flHeight || fabs(vPos.y) > vCenter.y - flHeight)
 	{
-		Vec2 a = { -(vCenter.x - flScale) / vPos.x, -(vCenter.y - flScale) / vPos.y };
-		Vec2 b = { (vCenter.x - flScale) / vPos.x, (vCenter.y - flScale) / vPos.y };
+		Vec2 a = { -(vCenter.x - flHeight) / vPos.x, -(vCenter.y - flHeight) / vPos.y };
+		Vec2 b = { (vCenter.x - flHeight) / vPos.x, (vCenter.y - flHeight) / vPos.y };
 		Vec2 c = { std::min(a.x, b.x), std::min(a.y, b.y) };
 		vPos *= fabsf(std::max(c.x, c.y));
 	}
 	vPos += vCenter;
 
-	Vec2 v1 = { 0, flScale / 2 },
-		v2 = { 0, -flScale / 2 },
-		v3 = { -flScale * sqrt(3.f) / 2, 0 };
+	Vec2 v1 = { 0, flBase / 2.f },
+		v2 = { 0, -flBase / 2.f },
+		v3 = { -flHeight, 0 };
+
 	H::Draw.FillPolygon(
 		{
 			{ { vPos.x + v1.x * flCos - v1.y * flSin, vPos.y + v1.y * flCos + v1.x * flSin } },

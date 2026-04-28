@@ -137,86 +137,16 @@ void CDraw::String(const Font_t& tFont, int x, int y, Color_t tColor, EAlign eAl
 	I::MatSystemSurface->DrawSetTextColor(tColor);
 	I::MatSystemSurface->DrawPrintText(wstr, int(wcslen(wstr)));
 }
-void CDraw::StringOutlined(const Font_t& tFont, int x, int y, Color_t tColor, Color_t tColorOut, EAlign eAlign, const char* str)
+void CDraw::StringOutlined(const Font_t& tFont, int x, int y, Color_t tColor, Color_t tColorOut, EAlign eAlign, const char* str, bool bAlpha)
 {
-	if (Vars::Menu::CheapText.Value)
-		return String(tFont, x, y, tColor, eAlign, str);
-
-	wsprintfW(s_wstr, L"%hs", str);
-	const auto dwFont = tFont.m_dwFont;
-
-	Vec2 vSize = GetTextSize(s_wstr, tFont);
-	switch (eAlign)
-	{
-	case ALIGN_TOPLEFT: break;
-	case ALIGN_TOP: x -= vSize.x / 2; break;
-	case ALIGN_TOPRIGHT: x -= vSize.x; break;
-	case ALIGN_LEFT: y -= vSize.y / 2; break;
-	case ALIGN_CENTER: x -= vSize.x / 2; y -= vSize.y / 2; break;
-	case ALIGN_RIGHT: x -= vSize.x; y -= vSize.y / 2; break;
-	case ALIGN_BOTTOMLEFT: y -= vSize.y; break;
-	case ALIGN_BOTTOM: x -= vSize.x / 2; y -= vSize.y; break;
-	case ALIGN_BOTTOMRIGHT: x -= vSize.x; y -= vSize.y; break;
-	}
-
-	tColorOut.a *= Math::RemapVal(tColorOut.Brightness(), 0, 255, 0.5f, 0.1f);
-	if (tColorOut.a)
-	{
-		std::vector<std::pair<int, int>> vOutline = { { -1, 0 }, { 0, -1 }, { 1, 0 }, { 0, 1 }, { -1, -1 }, { 1, 1 }, { -1, 1 }, { 1, -1 } };
-
-		for (auto& [x2, y2] : vOutline)
-		{
-			I::MatSystemSurface->DrawSetTextPos(x + x2, y + y2);
-			I::MatSystemSurface->DrawSetTextFont(dwFont);
-			I::MatSystemSurface->DrawSetTextColor(tColorOut);
-			I::MatSystemSurface->DrawPrintText(s_wstr, int(wcslen(s_wstr)));
-		}
-	}
-
-	I::MatSystemSurface->DrawSetTextPos(x, y);
-	I::MatSystemSurface->DrawSetTextFont(dwFont);
-	I::MatSystemSurface->DrawSetTextColor(tColor);
-	I::MatSystemSurface->DrawPrintText(s_wstr, int(wcslen(s_wstr)));
+	// Just call regular String - ignore outline parameters
+	String(tFont, x, y, tColor, eAlign, str);
 }
-void CDraw::StringOutlined(const Font_t& tFont, int x, int y, Color_t tColor, Color_t tColorOut, EAlign eAlign, const wchar_t* wstr)
+
+void CDraw::StringOutlined(const Font_t& tFont, int x, int y, Color_t tColor, Color_t tColorOut, EAlign eAlign, const wchar_t* wstr, bool bAlpha)
 {
-	if (Vars::Menu::CheapText.Value)
-		return String(tFont, x, y, tColor, eAlign, wstr);
-
-	const auto dwFont = tFont.m_dwFont;
-
-	Vec2 vSize = GetTextSize(wstr, tFont);
-	switch (eAlign)
-	{
-	case ALIGN_TOPLEFT: break;
-	case ALIGN_TOP: x -= vSize.x / 2; break;
-	case ALIGN_TOPRIGHT: x -= vSize.x; break;
-	case ALIGN_LEFT: y -= vSize.y / 2; break;
-	case ALIGN_CENTER: x -= vSize.x / 2; y -= vSize.y / 2; break;
-	case ALIGN_RIGHT: x -= vSize.x; y -= vSize.y / 2; break;
-	case ALIGN_BOTTOMLEFT: y -= vSize.y; break;
-	case ALIGN_BOTTOM: x -= vSize.x / 2; y -= vSize.y; break;
-	case ALIGN_BOTTOMRIGHT: x -= vSize.x; y -= vSize.y; break;
-	}
-	
-	tColorOut.a *= Math::RemapVal(tColorOut.Brightness(), 0, 255, 0.5f, 0.1f);
-	if (tColorOut.a)
-	{
-		std::vector<std::pair<int, int>> vOutline = { { -1, 0 }, { 0, -1 }, { 1, 0 }, { 0, 1 }, { -1, -1 }, { 1, 1 }, { -1, 1 }, { 1, -1 } };
-
-		for (auto& [x2, y2] : vOutline)
-		{
-			I::MatSystemSurface->DrawSetTextPos(x + x2, y + y2);
-			I::MatSystemSurface->DrawSetTextFont(dwFont);
-			I::MatSystemSurface->DrawSetTextColor(tColorOut);
-			I::MatSystemSurface->DrawPrintText(wstr, int(wcslen(wstr)));
-		}
-	}
-
-	I::MatSystemSurface->DrawSetTextPos(x, y);
-	I::MatSystemSurface->DrawSetTextFont(dwFont);
-	I::MatSystemSurface->DrawSetTextColor(tColor);
-	I::MatSystemSurface->DrawPrintText(wstr, int(wcslen(wstr)));
+	// Just call regular String - ignore outline parameters (lO0LOOL0O0LO0L00OL)
+	String(tFont, x, y, tColor, eAlign, wstr);
 }
 
 void CDraw::Line(int x1, int y1, int x2, int y2, Color_t tColor)

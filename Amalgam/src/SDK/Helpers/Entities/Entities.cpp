@@ -16,8 +16,6 @@ void CEntities::Store()
 	m_pLocal = pLocal->As<CTFPlayer>();
 	m_pLocalWeapon = m_pLocal->m_hActiveWeapon()->As<CTFWeaponBase>();
 
-	PollActiveSounds();
-
 	int iLag;
 	{
 		static int iStaticTickcout = I::GlobalVars->tickcount;
@@ -602,49 +600,6 @@ CTFWeaponBase* CEntities::GetWeapon()
 CTFPlayerResource* CEntities::GetResource()
 {
 	return m_pPlayerResource;
-}
-
-void CEntities::PollActiveSounds()
-{
-	if (!I::EngineSound)
-		return;
-
-	static CUtlVector<SndInfo_t> activeSounds;
-	I::EngineSound->GetActiveSounds(activeSounds);
-
-	if (!activeSounds.Count())
-		return;
-
-	for (int i = 0; i < activeSounds.Count(); i++)
-	{
-		auto& sound = activeSounds[i];
-
-		if (!sound.m_pOrigin || sound.m_nSoundSource < 1 || sound.m_nSoundSource > I::EngineClient->GetMaxClients())
-			continue;
-
-		int iIndex = sound.m_nSoundSource;
-
-		if (iIndex == I::EngineClient->GetLocalPlayer())
-			continue;
-
-		auto pPlayer = I::ClientEntityList->GetClientEntity(iIndex)->As<CTFPlayer>();
-		if (!pPlayer || !pPlayer->IsPlayer() || !pPlayer->IsDormant())
-			continue;
-
-		if (pPlayer->m_iTeamNum() == m_pLocal->m_iTeamNum())
-			continue;
-
-		// FIX: Change m_mDormancy to s_mDormancy
-		float flDuration = 1.f;
-		s_mDormancy[iIndex] = { *sound.m_pOrigin, I::GlobalVars->curtime + flDuration, I::GlobalVars->curtime, 0, true };
-
-		// Also set the boolean flag so H::Entities.GetDormancy() works correctly
-		m_aDormancy[iIndex] = true;
-
-		pPlayer->SetAbsOrigin(*sound.m_pOrigin);
-	}
-
-	activeSounds.RemoveAll();
 }
 
 const std::vector<CBaseEntity*>& CEntities::GetGroup(byte iGroup) { return m_aGroups[iGroup]; }

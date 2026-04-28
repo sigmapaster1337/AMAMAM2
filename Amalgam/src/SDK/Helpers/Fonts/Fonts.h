@@ -1,28 +1,31 @@
 #pragma once
-#include "../../Vars.h"
+#include "../../../Utils/Macros/Macros.h"
+#include "../../Definitions/Interfaces/IMatSystemSurface.h"
 #include <unordered_map>
+#include <string>
 
 enum EFonts
 {
-	FONT_ESP,
-	FONT_INDICATORS
+    FONT_ESP,
+    FONT_INDICATORS
 };
 
 struct Font_t
 {
-	const char* m_szName;
-	int m_nTall, m_nFlags, m_nWeight;
-	unsigned long m_dwFont;
+    const char* m_szName;
+    int m_nTall, m_nFlags, m_nWeight;
+    unsigned long m_dwFont;
 };
 
 class CFonts
 {
 private:
-	std::unordered_map<EFonts, Font_t> m_mFonts = {};
+    std::unordered_map<EFonts, Font_t> m_mFonts = {};
 
 public:
-	void Reload(float flDPI = Vars::Menu::Scale[DEFAULT_BIND], bool bOutline = Vars::Menu::CheapText[DEFAULT_BIND]);
-	const Font_t& GetFont(EFonts eFont);
+    void Reload(float flDPI = 1.f);
+    void Shutdown();
+    const Font_t& GetFont(EFonts eFont);
 };
 
 ADD_FEATURE_CUSTOM(CFonts, Fonts, H);

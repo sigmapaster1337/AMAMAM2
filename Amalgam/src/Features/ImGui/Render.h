@@ -36,6 +36,8 @@ public:
 
 	ImFont* IconFont = nullptr;
 
+	ImFont* FontBinds = nullptr;
+
 	bool m_bLoaded = false;
 };
 

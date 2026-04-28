@@ -421,20 +421,28 @@ void CTicks::Draw(CTFPlayer* pLocal)
 	int iMax = std::max(m_iMaxUsrCmdProcessTicks - iAntiAimTicks, 0);
 
 	float flRatio = float(iTicks) / float(iMax);
-	int iSizeX = H::Draw.Scale(100, Scale_Round), iSizeY = H::Draw.Scale(12, Scale_Round);
-	int iPosX = dtPos.x - iSizeX / 2, iPosY = dtPos.y + fFont.m_nTall + H::Draw.Scale(4) + 1;
+	int iSizeX = H::Draw.Scale(80, Scale_Round);
+	int iSizeY = H::Draw.Scale(8, Scale_Round);
+	int iPosX = dtPos.x - iSizeX / 2;
+	int iPosY = dtPos.y;
 
-	H::Draw.StringOutlined(fFont, dtPos.x, dtPos.y + 2, Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value, ALIGN_TOP, std::format("Ticks {} / {}", iTicks, iMax).c_str());
-	if (m_iWait)
-		H::Draw.StringOutlined(fFont, dtPos.x, dtPos.y + fFont.m_nTall + H::Draw.Scale(18, Scale_Round) + 1, Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value, ALIGN_TOP, "Not Ready");
+	H::Draw.StringOutlined(fFont, dtPos.x, iPosY - H::Draw.Scale(8, Scale_Round) - fFont.m_nTall,
+		Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value, ALIGN_TOP,
+		std::format("{} / {}", iTicks, m_iMaxShift).c_str());
 
-	H::Draw.LineRoundRect(iPosX, iPosY, iSizeX, iSizeY, H::Draw.Scale(4, Scale_Round), Vars::Menu::Theme::Accent.Value, 16);
+	H::Draw.LineRect(iPosX, iPosY, iSizeX, iSizeY, Vars::Menu::Theme::Background.Value);
+
+
 	if (flRatio)
 	{
-		iSizeX -= H::Draw.Scale(2, Scale_Ceil) * 2, iSizeY -= H::Draw.Scale(2, Scale_Ceil) * 2;
-		iPosX += H::Draw.Scale(2, Scale_Round), iPosY += H::Draw.Scale(2, Scale_Round);
-		H::Draw.StartClipping(iPosX, iPosY, iSizeX * flRatio, iSizeY);
-		H::Draw.FillRoundRect(iPosX, iPosY, iSizeX, iSizeY, H::Draw.Scale(3, Scale_Round), Vars::Menu::Theme::Accent.Value, 16);
-		H::Draw.EndClipping();
+		int iFillSizeX = iSizeX - 2;
+		int iFillSizeY = iSizeY - 2;
+		int iFillPosX = iPosX + 1;
+		int iFillPosY = iPosY + 1;
+
+		bool bWeaponCooldown = m_iWait > 0 && iTicks >= Vars::Doubletap::TickLimit.Value;
+
+		Color_t fillColor = bWeaponCooldown ? Color_t(159, 156, 156, 255) : Vars::Menu::Theme::Accent.Value;
+		H::Draw.FillRect(iFillPosX, iFillPosY, iFillSizeX * flRatio, iFillSizeY, fillColor);
 	}
 }

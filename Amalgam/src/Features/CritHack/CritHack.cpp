@@ -180,7 +180,7 @@ void CCritHack::UpdateWeaponInfo(CTFPlayer* pLocal, CTFWeaponBase* pWeapon)
 
 			if (!bRapidFire)
 				iTestShots++;
-			else 
+			else
 			{
 				flTickBase += std::ceilf(flFireRate / TICK_INTERVAL) * TICK_INTERVAL;
 				if (flTickBase >= flLastRapidFireCritCheckTime + 1.f || !i && flTestBucket == flBucketCap)
@@ -308,7 +308,7 @@ int CCritHack::GetCritRequest(CUserCmd* pCmd, CTFWeaponBase* pWeapon)
 		if (pEntity && pEntity->IsPlayer())
 			bPressed = true;
 	}
-	
+
 	bool bSkip = Vars::CritHack::AvoidRandomCrits.Value;
 	bool bDesync = CommandToSeed(pCmd->command_number) == pWeapon->m_iCurrentSeed();
 
@@ -326,8 +326,8 @@ void CCritHack::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd)
 
 	if (pWeapon->GetWeaponID() == TF_WEAPON_MINIGUN && pCmd->buttons & IN_ATTACK)
 		pCmd->buttons &= ~IN_ATTACK2;
-	
-	bool bAttacking = G::Attacking /*== 1*/ || F::Ticks.m_bDoubletap || F::Ticks.m_bSpeedhack;
+
+	bool bAttacking = G::Attacking /*== 1*/ || F::Ticks.m_bDoubletap;
 	if (m_bMelee)
 	{
 		bAttacking = G::CanPrimaryAttack && pCmd->buttons & IN_ATTACK;
@@ -380,31 +380,31 @@ void CCritHack::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd)
 
 int CCritHack::PredictCmdNum(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd)
 {
-	auto fGetCmdNum = [&](int iCommandNumber)
-	{
-		if (!pWeapon || !pLocal->IsAlive() || !I::EngineClient->IsInGame() || Vars::Misc::Game::AntiCheatCompatibility.Value
-			|| pLocal->IsCritBoosted() || pWeapon->m_flCritTime() > I::GlobalVars->curtime || !WeaponCanCrit(pWeapon))
-			return iCommandNumber;
+	auto getCmdNum = [&](int iCommandNumber)
+		{
+			if (!pWeapon || !pLocal->IsAlive() || !I::EngineClient->IsInGame() || Vars::Misc::Game::AntiCheatCompatibility.Value
+				|| pLocal->IsCritBoosted() || pWeapon->m_flCritTime() > I::GlobalVars->curtime || !WeaponCanCrit(pWeapon))
+				return iCommandNumber;
 
-		UpdateInfo(pLocal, pWeapon);
-		if (pWeapon->IsRapidFire() && I::GlobalVars->curtime < pWeapon->m_flLastRapidFireCritCheckTime() + 1.f)
-			return iCommandNumber;
+			UpdateInfo(pLocal, pWeapon);
+			if (pWeapon->IsRapidFire() && I::GlobalVars->curtime < pWeapon->m_flLastRapidFireCritCheckTime() + 1.f)
+				return iCommandNumber;
 
-		int iRequest = GetCritRequest(pCmd, pWeapon);
-		if (iRequest == CritRequestEnum::Any)
-			return iCommandNumber;
+			int iRequest = GetCritRequest(pCmd, pWeapon);
+			if (iRequest == CritRequestEnum::Any)
+				return iCommandNumber;
 
-		if (int iCommand = GetCritCommand(pWeapon, iCommandNumber, iRequest == CritRequestEnum::Crit))
-			return iCommand;
-		return iCommandNumber;
-	};
+			if (int iCommand = GetCritCommand(pWeapon, iCommandNumber, iRequest == CritRequestEnum::Crit))
+				return iCommand;
+			return iCommandNumber;
+		};
 
 	static int iCommandNumber = 0; // cache, don't constantly test
 
 	static int iStaticCommand = 0;
 	if (pCmd->command_number != iStaticCommand)
 	{
-		iCommandNumber = fGetCmdNum(pCmd->command_number);
+		iCommandNumber = getCmdNum(pCmd->command_number);
 		iStaticCommand = pCmd->command_number;
 	}
 
@@ -442,7 +442,7 @@ void CCritHack::Event(IGameEvent* pEvent, uint32_t uHash, CTFPlayer* pLocal)
 				int iOldHealth = (tHistory.m_mHistory.contains(iHealth) ? tHistory.m_mHistory[iHealth].m_iOldHealth : tHistory.m_iNewHealth) % 32768;
 				if (iHealth > iOldHealth)
 				{
-					for (auto& tOldHealth : tHistory.m_mHistory | std::views::values)
+					for (auto& [_, tOldHealth] : tHistory.m_mHistory)
 					{
 						int iOldHealth2 = tOldHealth.m_iOldHealth % 32768;
 						if (iOldHealth2 > iHealth)
@@ -582,8 +582,6 @@ static void* s_pCTFGameStats = nullptr;
 MAKE_HOOK(CTFGameStats_FindPlayerStats, S::CTFGameStats_FindPlayerStats(), void*,
 	void* rcx, CBasePlayer* pPlayer)
 {
-	DEBUG_RETURN(CTFGameStats_FindPlayerStats, rcx, pPlayer);
-
 	s_pCTFGameStats = rcx;
 	return CALL_ORIGINAL(rcx, pPlayer);
 }
@@ -595,11 +593,8 @@ void CCritHack::Draw(CTFPlayer* pLocal)
 		return;
 
 	auto pWeapon = H::Entities.GetWeapon();
-	if (!pWeapon || !pLocal->IsAlive() || pLocal->IsAGhost()
-		|| !WeaponCanCrit(pWeapon, true))
+	if (!pWeapon || !pLocal->IsAlive() || pLocal->IsAGhost())
 		return;
-
-
 
 	int x = Vars::Menu::CritsDisplay.Value.x;
 	int y = Vars::Menu::CritsDisplay.Value.y + 8;
@@ -617,6 +612,12 @@ void CCritHack::Draw(CTFPlayer* pLocal)
 	{
 		x += H::Draw.Scale(42, Scale_Round);
 		align = ALIGN_TOPRIGHT;
+	}
+
+	if (!WeaponCanCrit(pWeapon, true))
+	{
+		H::Draw.StringOutlined(fFont, x, y += nTall, Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value, align, "Weapon can't crit");
+		return;
 	}
 
 	if (!pWeapon->AreRandomCritsEnabled())
@@ -648,10 +649,7 @@ void CCritHack::Draw(CTFPlayer* pLocal)
 				if (!pWeapon->IsRapidFire() || flTickBase >= pWeapon->m_flLastRapidFireCritCheckTime() + 1.f)
 					H::Draw.StringOutlined(fFont, x, y += nTall, Vars::Colors::IndicatorTextGood.Value, Vars::Menu::Theme::Background.Value, align, "Crit Ready");
 				else
-				{
-					float flTime = pWeapon->m_flLastRapidFireCritCheckTime() + 1.f - flTickBase;
-					H::Draw.StringOutlined(fFont, x, y += nTall, Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value, align, std::format("Wait {:.1f}s", flTime).c_str());
-				}
+					H::Draw.StringOutlined(fFont, x, y += nTall, Vars::Colors::IndicatorTextGood.Value, Vars::Menu::Theme::Background.Value, align, "Crit Ready");
 			}
 			else
 			{
@@ -661,13 +659,20 @@ void CCritHack::Draw(CTFPlayer* pLocal)
 		}
 	}
 	else
-		H::Draw.StringOutlined(fFont, x, y += nTall, Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value, align, std::format("Deal {} damage", ceilf(m_flDamageTilFlip)).c_str());
-	
+		H::Draw.StringOutlined(fFont, x, y += nTall, Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value, align, std::format("deal {} damage", ceilf(m_flDamageTilFlip)).c_str());
+
+	// Always show "Wait" if rapid fire weapon is on cooldown
+	if (pWeapon->IsRapidFire() && flTickBase < pWeapon->m_flLastRapidFireCritCheckTime() + 1.f)
+	{
+		float flTime = pWeapon->m_flLastRapidFireCritCheckTime() + 1.f - flTickBase;
+		H::Draw.StringOutlined(fFont, x, y += nTall, Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value, align, std::format("Wait {:.1f}s", flTime).c_str());
+	}
+
 	if (m_iPotentialCrits > 0)
 	{
 		int iCrits = m_iAvailableCrits;
-		H::Draw.StringOutlined(fFont, x, y += nTall, Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value, align, std::format("{}{} / {} crits", iCrits, iCrits == BUCKET_ATTEMPTS ? "+" : "", m_iPotentialCrits).c_str());
-		
+		H::Draw.StringOutlined(fFont, x, y += nTall, Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value, align, std::format("{}{} / {} potential crits", iCrits, iCrits == BUCKET_ATTEMPTS ? "+" : "", m_iPotentialCrits).c_str());
+
 		if (m_iNextCrit && iCrits)
 		{
 			int iShots = m_iNextCrit;
@@ -681,9 +686,9 @@ void CCritHack::Draw(CTFPlayer* pLocal)
 	if (m_iDesyncDamage)
 	{
 		auto tColor = m_iDesyncDamage < 0
-			? Vars::Menu::Theme::Active.Value.Lerp(Vars::Colors::IndicatorTextMid.Value, std::min(fabsf(m_iDesyncDamage) / 100, 1.f))
+			? Vars::Menu::Theme::Active.Value.Lerp(Vars::Colors::IndicatorTextGood.Value, std::min(fabsf(m_iDesyncDamage) / 100, 1.f))
 			: Vars::Colors::IndicatorTextBad.Value;
-		H::Draw.StringOutlined(fFont, x, y += nTall, tColor, Vars::Menu::Theme::Background.Value, align, std::format("{}{} desync", m_iDesyncDamage > 0 ? "+" : "", m_iDesyncDamage).c_str());
+		H::Draw.StringOutlined(fFont, x, y += nTall, tColor, Vars::Menu::Theme::Background.Value, align, std::format("Damage desync {}{}", m_iDesyncDamage > 0 ? "+" : "", m_iDesyncDamage).c_str());
 	}
 
 

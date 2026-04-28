@@ -57,11 +57,11 @@ std::string CNoSpreadHitscan::GetFormat(int iServerTime)
 	int iSeconds = iServerTime % 60;
 
 	if (iDays)
-		return std::format("{}d {}h", iDays, iHours);
+		return std::format("{} d {} h", iDays, iHours);
 	else if (iHours)
-		return std::format("{}h {}m", iHours, iMinutes);
+		return std::format("{} h {} min", iHours, iMinutes);
 	else
-		return std::format("{}m {}s", iMinutes, iSeconds);
+		return std::format("{} min {} sec", iMinutes, iSeconds);
 }
 
 void CNoSpreadHitscan::AskForPlayerPerf()
@@ -86,14 +86,14 @@ bool CNoSpreadHitscan::ParsePlayerPerf(const std::string& sMsg)
 	if (!Vars::Aimbot::General::NoSpread.Value)
 		return false;
 
-	std::smatch tMatch; std::regex_match(sMsg, tMatch, std::regex(R"((\d+.\d+)\s\d+\s\d+\s\d+.\d+\s\d+.\d+\svel\s\d+.\d+)"));
+	std::smatch match; std::regex_match(sMsg, match, std::regex(R"((\d+.\d+)\s\d+\s\d+\s\d+.\d+\s\d+.\d+\svel\s\d+.\d+)"));
 
-	if (tMatch.size() == 2)
+	if (match.size() == 2)
 	{
 		m_bWaitingForPlayerPerf = false;
 
 		// credits to kgb for idea
-		float flNewServerTime = std::stof(tMatch[1].str());
+		float flNewServerTime = std::stof(match[1].str());
 		if (flNewServerTime < m_flServerTime)
 			return true;
 
@@ -117,7 +117,7 @@ bool CNoSpreadHitscan::ParsePlayerPerf(const std::string& sMsg)
 		if (flMantissaStep > m_flMantissaStep && (m_bSynced || !m_flMantissaStep))
 		{
 			SDK::Output("Seed Prediction", m_bSynced ? std::format("Synced ({})", m_dTimeDelta).c_str() : "Not synced, step too low", Vars::Menu::Theme::Accent.Value);
-			SDK::Output("Seed Prediction", std::format("Age {}; Step {}", GetFormat(m_flServerTime), flMantissaStep).c_str(), Vars::Menu::Theme::Accent.Value);
+			SDK::Output("Seed Prediction", std::format("Age {}; Step {:.3f}", GetFormat(m_flServerTime), flMantissaStep).c_str(), Vars::Menu::Theme::Accent.Value);
 		}
 		m_flMantissaStep = flMantissaStep;
 
@@ -178,7 +178,7 @@ void CNoSpreadHitscan::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* 
 	const auto cFixedSpread = std::ranges::min_element(vBulletCorrections,
 		[&](const Vec3& lhs, const Vec3& rhs)
 		{
-			return lhs.DistToSqr(vAverageSpread) < rhs.DistToSqr(vAverageSpread);
+			return lhs.DistTo(vAverageSpread) < rhs.DistTo(vAverageSpread);
 		});
 
 	if (cFixedSpread == vBulletCorrections.end())
@@ -220,8 +220,8 @@ void CNoSpreadHitscan::Draw(CTFPlayer* pLocal)
 
 	const auto& cColor = m_bSynced ? Vars::Menu::Theme::Active.Value : Vars::Menu::Theme::Inactive.Value;
 
-	H::Draw.StringOutlined(fFont, x, y, cColor, Vars::Menu::Theme::Background.Value, align, std::format("Uptime {}", GetFormat(m_flServerTime)).c_str());
-	H::Draw.StringOutlined(fFont, x, y += nTall, cColor, Vars::Menu::Theme::Background.Value, align, std::format("Mantissa step {}", m_flMantissaStep).c_str());
+	H::Draw.StringOutlined(fFont, x, y, cColor, Vars::Menu::Theme::Background.Value, align, std::format("Server uptime {}", GetFormat(m_flServerTime)).c_str());
+	H::Draw.StringOutlined(fFont, x, y += nTall, cColor, Vars::Menu::Theme::Background.Value, align, std::format("Mantissa step {:.3f}", m_flMantissaStep).c_str());
 	if (Vars::Debug::Info.Value)
 		H::Draw.StringOutlined(fFont, x, y += nTall, cColor, Vars::Menu::Theme::Background.Value, align, std::format("Delta {:.3f}", m_dTimeDelta).c_str());
 }

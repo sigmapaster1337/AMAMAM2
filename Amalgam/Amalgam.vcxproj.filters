@@ -204,7 +204,6 @@
     <ClCompile Include="include\ImGui\imgui_tables.cpp" />
     <ClCompile Include="include\ImGui\imgui_widgets.cpp" />
     <ClCompile Include="include\ImGui\TextEditor.cpp" />
-    <ClCompile Include="src\SDK\Definitions\Interfaces\IEngineSound.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Utils\UtlVector\UtlVector.h" />

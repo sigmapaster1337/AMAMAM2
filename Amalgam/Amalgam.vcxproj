@@ -1058,7 +1058,6 @@
     <ClCompile Include="src\Hooks\CTFPlayer_InSameDisguisedTeam.cpp" />
     <ClCompile Include="src\Hooks\TF_IsHolidayActive.cpp" />
     <ClCompile Include="src\Hooks\VGuiMenuBuilder_AddMenuItem.cpp" />
-    <ClCompile Include="src\SDK\Definitions\Interfaces\IEngineSound.h" />
     <ClCompile Include="src\SDK\Definitions\Main\CBaseAnimating.cpp" />
     <ClCompile Include="src\SDK\Definitions\Main\CBaseCombatCharacter.cpp" />
     <ClCompile Include="src\SDK\Definitions\Main\CBaseEntity.cpp" />

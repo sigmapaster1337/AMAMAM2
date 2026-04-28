@@ -116,7 +116,7 @@ void CSpectatorList::Draw(CTFPlayer* pLocal)
 
 	auto pResource = H::Entities.GetResource();
 	int iIndex = pTarget->entindex();
-	const char* sName = pTarget != pLocal ? F::PlayerUtils.GetPlayerName(iIndex, pResource->GetName(iIndex)) : "You";
+	const char* sName = pTarget != pLocal ? F::PlayerUtils.GetPlayerName(iIndex, pResource->GetName(iIndex)) : "you";
 	H::Draw.StringOutlined(fFont, x, y, Vars::Menu::Theme::Accent.Value, Vars::Menu::Theme::Background.Value, align, std::format("Spectating {}:", sName).c_str());
 	for (auto& tSpectator : m_vSpectators)
 	{
@@ -128,13 +128,13 @@ void CSpectatorList::Draw(CTFPlayer* pLocal)
 		else if (H::Entities.InParty(tSpectator.m_iIndex))
 			tColor = F::PlayerUtils.m_vTags[F::PlayerUtils.TagToIndex(PARTY_TAG)].m_tColor;
 		else if (tSpectator.m_bRespawnTimeIncreased)
-			tColor = F::PlayerUtils.m_vTags[F::PlayerUtils.TagToIndex(CHEATER_TAG)].m_tColor;
+			tColor = { 255, 0, 0, 255 };
 		else if (FNV1A::Hash32(tSpectator.m_sMode) == FNV1A::Hash32Const("1st"))
-			tColor = tColor.Lerp({ 255, 150, 0, 255 }, 0.5f);
+			tColor = { 255, 0, 0, 255 };
 
 		if (tSpectator.m_flRespawnIn != -1.f)
-			H::Draw.StringOutlined(fFont, x + iconOffset, y, tColor, Vars::Menu::Theme::Background.Value, align, std::format("{} ({} - respawn {}s)", tSpectator.m_sName, tSpectator.m_sMode, tSpectator.m_flRespawnIn).c_str());
+			H::Draw.StringOutlined(fFont, x + iconOffset, y, tColor, Vars::Menu::Theme::Background.Value, align, std::format("{} {} (respawn {}s)", tSpectator.m_sName, tSpectator.m_sMode, tSpectator.m_flRespawnIn).c_str());
 		else
-			H::Draw.StringOutlined(fFont, x + iconOffset, y, tColor, Vars::Menu::Theme::Background.Value, align, std::format("{} ({})", tSpectator.m_sName, tSpectator.m_sMode).c_str());
+			H::Draw.StringOutlined(fFont, x + iconOffset, y, tColor, Vars::Menu::Theme::Background.Value, align, std::format("{} {}", tSpectator.m_sName, tSpectator.m_sMode).c_str());
 	}
 }

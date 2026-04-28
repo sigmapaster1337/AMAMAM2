@@ -9,6 +9,290 @@
 MAKE_SIGNATURE(CTFPlayerSharedUtils_GetEconItemViewByLoadoutSlot, "client.dll", "48 89 6C 24 ? 56 41 54 41 55 41 56 41 57 48 83 EC", 0x0);
 MAKE_SIGNATURE(CEconItemView_GetItemName, "client.dll", "40 53 48 83 EC ? 48 8B D9 C6 81 ? ? ? ? ? E8 ? ? ? ? 48 8B 8B", 0x0);
 
+static inline const char* GetWeaponNameByID(int iWeaponID, int iItemDefIndex)
+{
+	// First try to get name by specific item definition index for unique weapons
+	switch (iItemDefIndex)
+	{
+	case Scout_m_ForceANature:
+	case Scout_m_FestiveForceANature: { return "Force-A-Nature"; }
+	case Scout_m_FestiveScattergun: { return "Scattergun"; }
+	case Scout_m_BackcountryBlaster: { return "Back Scatter"; }
+	case Scout_s_MutatedMilk: { return "Mad Milk"; }
+	case Scout_s_TheWinger: { return "Winger"; }
+	case Scout_s_FestiveBonk:
+	case Scout_s_BonkAtomicPunch: { return "Bonk Atomic Punch"; }
+	case Scout_s_PrettyBoysPocketPistol: { return "Pocket Pistol"; }
+	case Scout_s_CritaCola: { return "Crit A Cola"; }
+	case Scout_t_FestiveBat: { return "Bat"; }
+	case Scout_t_FestiveHolyMackerel: { return "Holy Mackerel"; }
+	case Scout_t_TheAtomizer: { return "Atomizer"; }
+	case Scout_t_TheCandyCane: { return "Candy Cane"; }
+	case Scout_t_TheFanOWar: { return "Fan O' War"; }
+	case Scout_t_SunonaStick: { return "Sun On A Stick"; }
+	case Scout_t_TheBostonBasher: { return "Boston Basher"; }
+	case Scout_t_ThreeRuneBlade: { return "Three Rune Blade"; }
+	case Scout_t_TheFreedomStaff: { return "Freedom Staff"; }
+	case Scout_t_TheBatOuttaHell: { return "Bat Outta Hell"; }
+	case Scout_s_Lugermorph:
+	case Scout_s_VintageLugermorph: { return "Lugermorph"; }
+	case Scout_s_TheCAPPER: { return "C.A.P.P.E.R"; }
+	case Scout_t_UnarmedCombat: { return "Unarmed Combat"; }
+	case Scout_t_Batsaber: { return "Batsaber"; }
+	case Scout_t_TheHamShank: { return "Ham Shank"; }
+	case Scout_t_TheNecroSmasher: { return "Necro Smasher"; }
+	case Scout_t_TheConscientiousObjector: { return "Conscientious Objector"; }
+	case Scout_t_TheCrossingGuard: { return "Crossing Guard"; }
+	case Scout_t_TheMemoryMaker: { return "Memory Maker"; }
+
+	case Soldier_m_FestiveRocketLauncher: { return "Rocket Launcher"; }
+	case Soldier_m_RocketJumper: { return "Rocket Jumper"; }
+	case Soldier_m_TheAirStrike: { return "Air Strike"; }
+	case Soldier_m_TheLibertyLauncher: { return "Liberty Launcher"; }
+	case Soldier_m_TheOriginal: { return "Original"; }
+	case Soldier_m_FestiveBlackBox:
+	case Soldier_m_TheBlackBox: { return "Black Box"; }
+	case Soldier_m_TheBeggarsBazooka: { return "Beggar's Bazooka"; }
+	case Soldier_s_FestiveShotgun: { return "Shotgun"; }
+	case Soldier_s_FestiveBuffBanner: { return "Buff Banner"; }
+	case Soldier_s_TheConcheror: { return "Concheror"; }
+	case Soldier_s_TheBattalionsBackup: { return "Battalions Backup"; }
+	case Soldier_s_PanicAttack: { return "Panic Attack"; }
+	case Soldier_t_TheMarketGardener: { return "Market Gardener"; }
+	case Soldier_t_TheDisciplinaryAction: { return "Disciplinary Action"; }
+	case Soldier_t_TheEqualizer: { return "Equalizer"; }
+	case Soldier_t_ThePainTrain: { return "Pain Train"; }
+	case Soldier_t_TheHalfZatoichi: { return "Half Zatoichi"; }
+
+	case Pyro_m_FestiveFlameThrower: { return "Flame Thrower"; }
+	case Pyro_m_ThePhlogistinator: { return "Phlogistinator"; }
+	case Pyro_m_FestiveBackburner:
+	case Pyro_m_TheBackburner: { return "Backburner"; }
+	case Pyro_m_TheRainblower: { return "Rainblower"; }
+	case Pyro_m_TheDegreaser: { return "Degreaser"; }
+	case Pyro_m_NostromoNapalmer: { return "Nostromo Napalmer"; }
+	case Pyro_s_FestiveFlareGun: { return "Flare Gun"; }
+	case Pyro_s_TheScorchShot: { return "Scorch Shot"; }
+	case Pyro_s_TheDetonator: { return "Detonator"; }
+	case Pyro_s_TheReserveShooter: { return "Reserve Shooter"; }
+	case Pyro_t_TheFestiveAxtinguisher:
+	case Pyro_t_TheAxtinguisher: { return "Axtinguisher"; }
+	case Pyro_t_Homewrecker: { return "Homewrecker"; }
+	case Pyro_t_ThePowerjack: { return "Powerjack"; }
+	case Pyro_t_TheBackScratcher: { return "Back Scratcher"; }
+	case Pyro_t_TheThirdDegree: { return "Third Degree"; }
+	case Pyro_t_ThePostalPummeler: { return "Postal Pummeler"; }
+	case Pyro_t_PrinnyMachete: { return "Prinny Machete"; }
+	case Pyro_t_SharpenedVolcanoFragment: { return "Volcano Fragment"; }
+	case Pyro_t_TheMaul: { return "Maul"; }
+	case Pyro_t_TheLollichop: { return "Lollichop"; }
+
+	case Demoman_m_FestiveGrenadeLauncher: { return "Grenade Launcher"; }
+	case Demoman_m_TheIronBomber: { return "Iron Bomber"; }
+	case Demoman_m_TheLochnLoad: { return "Loch-n-Load"; }
+	case Demoman_s_FestiveStickybombLauncher: { return "Stickybomb Launcher"; }
+	case Demoman_s_StickyJumper: { return "Sticky Jumper"; }
+	case Demoman_s_TheQuickiebombLauncher: { return "Quickiebomb Launcher"; }
+	case Demoman_s_TheScottishResistance: { return "Scottish Resistance"; }
+	case Demoman_t_HorselessHeadlessHorsemannsHeadtaker: { return "Horsemann's Headtaker"; }
+	case Demoman_t_TheScottishHandshake: { return "Scottish Handshake"; }
+	case Demoman_t_FestiveEyelander:
+	case Demoman_t_TheEyelander: { return "Eyelander"; }
+	case Demoman_t_TheScotsmansSkullcutter: { return "Scotsman's Skullcutter"; }
+	case Demoman_t_ThePersianPersuader: { return "Persian Persuader"; }
+	case Demoman_t_NessiesNineIron: { return "Nessie's Nine Iron"; }
+	case Demoman_t_TheClaidheamhMor: { return "Claidheamh Mòr"; }
+
+	case Heavy_m_IronCurtain: { return "Iron Curtain"; }
+	case Heavy_m_FestiveMinigun: { return "Minigun"; }
+	case Heavy_m_Tomislav: { return "Tomislav"; }
+	case Heavy_m_TheBrassBeast: { return "Brass Beast"; }
+	case Heavy_m_Natascha: { return "Natascha"; }
+	case Heavy_m_TheHuoLongHeaterG:
+	case Heavy_m_TheHuoLongHeater: { return "Huo-Long Heater"; }
+	case Heavy_s_TheFamilyBusiness: { return "Family Business"; }
+	case Heavy_s_FestiveSandvich:
+	case Heavy_s_RoboSandvich:
+	case Heavy_s_Sandvich: { return "Sandvich"; }
+	case Heavy_s_Fishcake: { return "Fishcake"; }
+	case Heavy_s_SecondBanana: { return "Second Banana"; }
+	case Heavy_s_TheDalokohsBar: { return "Dalokohs Bar"; }
+	case Heavy_s_TheBuffaloSteakSandvich: { return "Buffalo Steak Sandvich"; }
+	case Heavy_t_FistsofSteel: { return "Fists of Steel"; }
+	case Heavy_t_TheHolidayPunch: { return "Holiday Punch"; }
+	case Heavy_t_WarriorsSpirit: { return "Warrior's Spirit"; }
+	case Heavy_t_TheEvictionNotice: { return "Eviction Notice"; }
+	case Heavy_t_TheKillingGlovesofBoxing: { return "Killing Gloves of Boxing"; }
+	case Heavy_t_ApocoFists: { return "Apoco-Fists"; }
+	case Heavy_t_FestiveGlovesofRunningUrgently:
+	case Heavy_t_GlovesofRunningUrgently: { return "Gloves of Running Urgently"; }
+	case Heavy_t_TheBreadBite: { return "Bread Bite"; }
+
+	case Engi_m_FestiveFrontierJustice: { return "Frontier Justice"; }
+	case Engi_m_TheWidowmaker: { return "Widowmaker"; }
+	case Engi_s_TheGigarCounter:
+	case Engi_s_FestiveWrangler: { return "Wrangler"; }
+	case Engi_s_TheShortCircuit: { return "Short Circuit"; }
+	case Engi_t_FestiveWrench: { return "Wrench"; }
+	case Engi_t_GoldenWrench: { return "Golden Wrench"; }
+	case Engi_t_TheGunslinger: { return "Gunslinger"; }
+	case Engi_t_TheJag: { return "Jag"; }
+	case Engi_t_TheEurekaEffect: { return "Eureka Effect"; }
+	case Engi_t_TheSouthernHospitality: { return "Southern Hospitality"; }
+
+	case Medic_m_FestiveCrusadersCrossbow: { return "Crusader's Crossbow"; }
+	case Medic_m_TheOverdose: { return "Overdose"; }
+	case Medic_m_TheBlutsauger: { return "Blutsauger"; }
+	case Medic_s_FestiveMediGun: { return "Medi Gun"; }
+	case Medic_s_TheQuickFix: { return "Quick-Fix"; }
+	case Medic_s_TheKritzkrieg: { return "Kritzkrieg"; }
+	case Medic_s_TheVaccinator: { return "Vaccinator"; }
+	case Medic_t_FestiveBonesaw: { return "Bonesaw"; }
+	case Medic_t_FestiveUbersaw:
+	case Medic_t_TheUbersaw: { return "Ubersaw"; }
+	case Medic_t_TheVitaSaw: { return "Vita-Saw"; }
+	case Medic_t_TheSolemnVow: { return "Solemn Vow"; }
+	case Medic_t_Amputator: { return "Amputator"; }
+
+	case Sniper_m_FestiveSniperRifle: { return "Sniper Rifle"; }
+	case Sniper_m_FestiveHuntsman:
+	case Sniper_m_TheHuntsman: { return "Huntsman"; }
+	case Sniper_m_TheMachina: { return "Machina"; }
+	case Sniper_m_TheAWPerHand: { return "AWPer Hand"; }
+	case Sniper_m_TheHitmansHeatmaker: { return "Hitman's Heatmaker"; }
+	case Sniper_m_TheSydneySleeper: { return "Sydney Sleeper"; }
+	case Sniper_m_ShootingStar: { return "Shooting Star"; }
+	case Sniper_s_FestiveJarate: { return "Jarate"; }
+	case Sniper_s_TheSelfAwareBeautyMark: { return "Jarate"; }
+	case Sniper_s_FestiveSMG: { return "SMG"; }
+	case Sniper_t_TheBushwacka: { return "Bushwacka"; }
+	case Sniper_t_KukriR:
+	case Sniper_t_Kukri: { return "Kukri"; }
+	case Sniper_t_TheShahanshah: { return "Shahanshah"; }
+	case Sniper_t_TheTribalmansShiv: { return "Tribalman's Shiv"; }
+
+	case Spy_m_FestiveRevolver: { return "Revolver"; }
+	case Spy_m_FestiveAmbassador:
+	case Spy_m_TheAmbassador: { return "Ambassador"; }
+	case Spy_m_BigKill: { return "Big Kill"; }
+	case Spy_m_TheDiamondback: { return "Diamondback"; }
+	case Spy_m_TheEnforcer: { return "Enforcer"; }
+	case Spy_m_LEtranger: { return "L'Etranger"; }
+	case Spy_s_Sapper:
+	case Spy_s_SapperR:
+	case Spy_s_FestiveSapper: { return "Sapper"; }
+	case Spy_s_TheRedTapeRecorder:
+	case Spy_s_TheRedTapeRecorderG: { return "Red-Tape Recorder"; }
+	case Spy_s_TheApSapG: { return "AP-Sap"; }
+	case Spy_s_TheSnackAttack: { return "Snack Attack"; }
+	case Spy_t_FestiveKnife: { return "Knife"; }
+	case Spy_t_ConniversKunai: { return "Conniver's Kunai"; }
+	case Spy_t_YourEternalReward: { return "Your Eternal Reward"; }
+	case Spy_t_TheBigEarner: { return "Big Earner"; }
+	case Spy_t_TheSpycicle: { return "Spycicle"; }
+	case Spy_t_TheSharpDresser: { return "Sharp Dresser"; }
+	case Spy_t_TheWangaPrick: { return "Wanga Prick"; }
+	case Spy_t_TheBlackRose: { return "Black Rose"; }
+
+	case Heavy_m_Deflector_mvm: { return "Deflector"; }
+	case Misc_t_FryingPan: { return "Frying Pan"; }
+	case Misc_t_GoldFryingPan: { return "Golden Frying Pan"; }
+	case Misc_t_Saxxy: { return "Saxxy"; }
+	}
+
+	switch (iWeaponID)
+	{
+		//scout
+	case TF_WEAPON_SCATTERGUN: { return "Scattergun"; }
+	case TF_WEAPON_HANDGUN_SCOUT_PRIMARY: { return "Shortstop"; }
+	case TF_WEAPON_HANDGUN_SCOUT_SECONDARY: { return "Pistol"; }
+	case TF_WEAPON_SODA_POPPER: { return "Soda Popper"; }
+	case TF_WEAPON_PEP_BRAWLER_BLASTER: { return "Baby Face's Blaster"; }
+	case TF_WEAPON_PISTOL_SCOUT: { return "Pistol"; }
+	case TF_WEAPON_JAR_MILK: { return "Mad Milk"; }
+	case TF_WEAPON_CLEAVER: { return "Cleaver"; }
+	case TF_WEAPON_BAT: { return "Bat"; }
+	case TF_WEAPON_BAT_WOOD: { return "Sandman"; }
+	case TF_WEAPON_BAT_FISH: { return "Holy Mackerel"; }
+	case TF_WEAPON_BAT_GIFTWRAP: { return "Wrap Assassin"; }
+
+							   //soldier
+	case TF_WEAPON_ROCKETLAUNCHER: { return "Rocket Launcher"; }
+	case TF_WEAPON_ROCKETLAUNCHER_DIRECTHIT: { return "Direct Hit"; }
+	case TF_WEAPON_PARTICLE_CANNON: { return "Cow Mangler 5000"; }
+	case TF_WEAPON_SHOTGUN_SOLDIER: { return "Shotgun"; }
+	case TF_WEAPON_BUFF_ITEM: { return "Buff Banner"; }
+	case TF_WEAPON_RAYGUN: { return "Righteous Bison"; }
+	case TF_WEAPON_SHOVEL: { return "Shovel"; }
+
+						 //pyro
+	case TF_WEAPON_FLAMETHROWER: { return "Flame Thrower"; }
+	case TF_WEAPON_FLAME_BALL: { return "Dragon's Fury"; }
+	case TF_WEAPON_SHOTGUN_PYRO: { return "Shotgun"; }
+	case TF_WEAPON_FLAREGUN: { return "Flaregun"; }
+	case TF_WEAPON_FLAREGUN_REVENGE: { return "Manmelter"; }
+	case TF_WEAPON_JAR_GAS: { return "Gas Passer"; }
+	case TF_WEAPON_ROCKETPACK: { return "Thermal Thruster"; }
+	case TF_WEAPON_FIREAXE: { return "Fire Axe"; }
+	case TF_WEAPON_BREAKABLE_SIGN: { return "Neon Annihilator"; }
+	case TF_WEAPON_SLAP: { return "Hot Hand"; }
+
+					   //demoman
+	case TF_WEAPON_GRENADELAUNCHER: { return "Grenade Launcher"; }
+	case TF_WEAPON_PIPEBOMBLAUNCHER: { return "Stickybomb Launcher"; }
+	case TF_WEAPON_CANNON: { return "Loose Cannon"; }
+	case TF_WEAPON_BOTTLE: { return "Bottle"; }
+	case TF_WEAPON_SWORD: { return "Sword"; }
+	case TF_WEAPON_STICKBOMB: { return "Ullapool Caber"; }
+
+							//heavy
+	case TF_WEAPON_MINIGUN: { return "Minigun"; }
+	case TF_WEAPON_SHOTGUN_HWG: { return "Shotgun"; }
+	case TF_WEAPON_LUNCHBOX: { return "Lunchbox"; }
+	case TF_WEAPON_FISTS: { return "Fists"; }
+
+						//engineer
+	case TF_WEAPON_SHOTGUN_PRIMARY: { return "Shotgun"; }
+	case TF_WEAPON_SHOTGUN_BUILDING_RESCUE: { return "Rescue Ranger"; }
+	case TF_WEAPON_SENTRY_REVENGE: { return "Frontier Justice"; }
+	case TF_WEAPON_DRG_POMSON: { return "Pomson 6000"; }
+	case TF_WEAPON_PISTOL: { return "Pistol"; }
+	case TF_WEAPON_LASER_POINTER: { return "Wrangler"; }
+	case TF_WEAPON_MECHANICAL_ARM: { return "Mechanical Arm"; }
+	case TF_WEAPON_WRENCH: { return "Wrench"; }
+	case TF_WEAPON_PDA_ENGINEER_DESTROY: { return "Destruction PDA"; }
+	case TF_WEAPON_PDA_ENGINEER_BUILD: { return "Construction PDA"; }
+	case TF_WEAPON_BUILDER: { return "Toolbox"; }
+
+						  //medic
+	case TF_WEAPON_SYRINGEGUN_MEDIC: { return "Syringe Gun"; }
+	case TF_WEAPON_CROSSBOW: { return "Crossbow"; }
+	case TF_WEAPON_MEDIGUN: { return "Medi Gun"; }
+	case TF_WEAPON_BONESAW: { return "Bonesaw"; }
+
+						  //sniper
+	case TF_WEAPON_SNIPERRIFLE: { return "Sniper Rifle"; }
+	case TF_WEAPON_COMPOUND_BOW: { return "Compound Bow"; }
+	case TF_WEAPON_SNIPERRIFLE_DECAP: { return "Bazaar Bargain"; }
+	case TF_WEAPON_SNIPERRIFLE_CLASSIC: { return "Classic"; }
+	case TF_WEAPON_SMG: { return "SMG"; }
+	case TF_WEAPON_CHARGED_SMG: { return "Cleaner's Carbine"; }
+	case TF_WEAPON_JAR: { return "Jarate"; }
+	case TF_WEAPON_CLUB: { return "Club"; }
+
+					   //spy
+	case TF_WEAPON_REVOLVER: { return "Revolver"; }
+	case TF_WEAPON_PDA_SPY_BUILD: { return "Sapper"; }
+	case TF_WEAPON_KNIFE: { return "Knife"; }
+	case TF_WEAPON_PDA_SPY: { return "Disguise Kit"; }
+	case TF_WEAPON_INVIS: { return "Invis Watch"; }
+
+	case TF_WEAPON_GRAPPLINGHOOK: { return "Grappling Hook"; }
+
+	default: break;
+	}
+}
+
 static inline void StorePlayer(CTFPlayer* pPlayer, CTFPlayer* pLocal, Group_t* pGroup, std::unordered_map<CBaseEntity*, PlayerCache_t>& mCache)
 {
 	int iIndex = pPlayer->entindex();
@@ -47,7 +331,7 @@ static inline void StorePlayer(CTFPlayer* pPlayer, CTFPlayer* pLocal, Group_t* p
 			if (pGroup->m_iESP & ESPEnum::Priority)
 			{
 				if (auto pTag = F::PlayerUtils.GetSignificantTag(uAccountID, 1))
-					tCache.m_vText.emplace_back(ALIGN_TOP, pTag->m_sName, pTag->m_tColor, pTag->m_tColor.IsColorDark() ? Color_t(255, 255, 255) : Color_t(0, 0, 0));
+					tCache.m_vText.emplace_back(ALIGN_BOTTOM, pTag->m_sName, pTag->m_tColor, Color_t(0, 0, 0, 255));
 			}
 
 			if (pGroup->m_iESP & ESPEnum::Labels)
@@ -79,6 +363,8 @@ static inline void StorePlayer(CTFPlayer* pPlayer, CTFPlayer* pLocal, Group_t* p
 				if (H::Entities.IsF2P(uAccountID))
 				{
 					auto pTag = &F::PlayerUtils.m_vTags[F::PlayerUtils.TagToIndex(F2P_TAG)];
+					pTag->m_tColor = { 205, 197, 102, 255 };
+					pTag->m_bLabel = false;
 					if (pTag->m_bLabel)
 						vTags.emplace_back(pTag->m_sName, pTag->m_tColor, pTag->m_iPriority);
 				}
@@ -107,8 +393,26 @@ static inline void StorePlayer(CTFPlayer* pPlayer, CTFPlayer* pLocal, Group_t* p
 		tCache.m_flHealth = flHealth > flMaxHealth
 			? 1.f + std::clamp((flHealth - flMaxHealth) / (floorf(flMaxHealth / 10.f) * 5), 0.f, 1.f)
 			: std::clamp(flHealth / flMaxHealth, 0.f, 1.f);
-		Color_t tColor = Vars::Colors::IndicatorBad.Value.Lerp(Vars::Colors::IndicatorGood.Value, std::clamp(tCache.m_flHealth, 0.f, 1.f), LerpEnum::HSV);
-		tCache.m_vBars.emplace_back(ALIGN_LEFT, tCache.m_flHealth, tColor, Vars::Colors::IndicatorMisc.Value);
+		// Custom health gradient: low (red) -> medium (yellow) -> full (green)
+		Color_t tColorLow = Color_t(159, 49, 43, 255);     // #9f312b
+		Color_t tColorMid = Color_t(183, 173, 56, 255);    // #b7ad38
+		Color_t tColorFull = Color_t(45, 172, 48, 255);    // #2dac30
+
+		float flHealthClamped = std::clamp(tCache.m_flHealth, 0.f, 1.f);
+		Color_t tColor;
+
+		if (flHealthClamped < 0.5f)
+		{
+			// 0% - 50%: red -> yellow
+			tColor = tColorLow.Lerp(tColorMid, flHealthClamped * 2.f);
+		}
+		else
+		{
+			// 50% - 100%: yellow -> green
+			tColor = tColorMid.Lerp(tColorFull, (flHealthClamped - 0.5f) * 2.f);
+		}
+
+		tCache.m_vBars.emplace_back(ALIGN_LEFT, tCache.m_flHealth, tColor, Color_t{ 255, 255, 255, 255 });
 	}
 	if (pGroup->m_iESP & ESPEnum::HealthText)
 		tCache.m_vText.emplace_back(ALIGN_LEFT, std::format("{}", flHealth), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
@@ -120,7 +424,7 @@ static inline void StorePlayer(CTFPlayer* pPlayer, CTFPlayer* pLocal, Group_t* p
 		{
 			float flUber = std::clamp(pMediGun->As<CWeaponMedigun>()->m_flChargeLevel(), 0.f, 1.f);
 			if (pGroup->m_iESP & ESPEnum::UberBar)
-				tCache.m_vBars.emplace_back(ALIGN_BOTTOM, flUber, Vars::Colors::IndicatorMisc.Value, Color_t(), false);
+				tCache.m_vBars.emplace_back(ALIGN_BOTTOM, flUber, Color_t(255, 0, 255, 255), Color_t(), false);
 			if (pGroup->m_iESP & ESPEnum::UberText)
 				tCache.m_vText.emplace_back(ALIGN_BOTTOMRIGHT, std::format("{:.0f}%", flUber * 100), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
 		}
@@ -135,9 +439,8 @@ static inline void StorePlayer(CTFPlayer* pPlayer, CTFPlayer* pLocal, Group_t* p
 		tCache.m_pWeaponIcon = pWeapon->GetWeaponIcon();
 	if (pGroup->m_iESP & ESPEnum::WeaponText && pWeapon)
 	{
-		auto pAttributeManager = U::Memory.CallVirtual<1, void*>(uintptr_t(pWeapon) + 3096);
-		auto pCurItemData = reinterpret_cast<void*>(uintptr_t(pAttributeManager) + 144);
-		tCache.m_vText.emplace_back(ALIGN_BOTTOM, SDK::ConvertWideToUTF8(S::CEconItemView_GetItemName.Call<const wchar_t*>(pCurItemData)), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
+		const char* szWeaponName = GetWeaponNameByID(pWeapon->GetWeaponID(), pWeapon->m_iItemDefinitionIndex());
+		tCache.m_vText.emplace_back(ALIGN_BOTTOM, szWeaponName, Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
 	}
 
 	if (pGroup->m_iESP & ESPEnum::LagCompensation && !pPlayer->IsDormant() && !bLocal)
@@ -150,7 +453,7 @@ static inline void StorePlayer(CTFPlayer* pPlayer, CTFPlayer* pLocal, Group_t* p
 	{
 		int iPing = pResource->m_iPing(iIndex);
 		if (iPing && (iPing >= 200 || iPing <= 5))
-			tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, std::format("{}MS", iPing), Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value);
+			tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, std::format("{} ms", iPing), Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value);
 	}
 
 	if (pGroup->m_iESP & ESPEnum::KDR && pResource && !bLocal)
@@ -193,17 +496,17 @@ static inline void StorePlayer(CTFPlayer* pPlayer, CTFPlayer* pLocal, Group_t* p
 
 		/* vaccinator effects */
 		if (pPlayer->InCond(TF_COND_MEDIGUN_UBER_BULLET_RESIST) || pPlayer->InCond(TF_COND_BULLET_IMMUNE))
-			tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, "Bullet+", Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value);
+			tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, "Bullet++", Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value);
 		else if (pPlayer->InCond(TF_COND_MEDIGUN_SMALL_BULLET_RESIST))
-			tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, "Bullet", Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
+			tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, "Bullet+", Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
 		if (pPlayer->InCond(TF_COND_MEDIGUN_UBER_BLAST_RESIST) || pPlayer->InCond(TF_COND_BLAST_IMMUNE))
-			tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, "Blast+", Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value);
+			tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, "Blast++", Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value);
 		else if (pPlayer->InCond(TF_COND_MEDIGUN_SMALL_BLAST_RESIST))
-			tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, "Blast", Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
+			tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, "Blast+", Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
 		if (pPlayer->InCond(TF_COND_MEDIGUN_UBER_FIRE_RESIST) || pPlayer->InCond(TF_COND_FIRE_IMMUNE))
-			tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, "Fire+", Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value);
+			tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, "Fire++", Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value);
 		else if (pPlayer->InCond(TF_COND_MEDIGUN_SMALL_FIRE_RESIST))
-			tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, "Fire", Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
+			tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, "Fire+", Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
 
 		if (pPlayer->InCond(TF_COND_OFFENSEBUFF))
 			tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, "Banner", Vars::Colors::IndicatorTextBad.Value, Vars::Menu::Theme::Background.Value);
@@ -272,7 +575,7 @@ static inline void StorePlayer(CTFPlayer* pPlayer, CTFPlayer* pLocal, Group_t* p
 			pPlayer->InCond(TF_COND_HALLOWEEN_QUICK_HEAL) ||
 			pPlayer->InCond(TF_COND_HALLOWEEN_HELL_HEAL) ||
 			pPlayer->InCond(TF_COND_KING_BUFFED))
-			tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, "Heal", Vars::Colors::IndicatorTextGood.Value, Vars::Menu::Theme::Background.Value);
+			tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, "HP++", Vars::Colors::IndicatorTextGood.Value, Vars::Menu::Theme::Background.Value);
 		else if (pPlayer->InCond(TF_COND_HEALTH_OVERHEALED))
 			tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, "HP+", Vars::Colors::IndicatorTextGood.Value, Vars::Menu::Theme::Background.Value);
 
@@ -308,22 +611,22 @@ static inline void StorePlayer(CTFPlayer* pPlayer, CTFPlayer* pLocal, Group_t* p
 	if (pGroup->m_iESP & ESPEnum::Flags)
 	{
 		if (pPlayer->m_bFeignDeathReady())
-			tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, "DR", Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
+			tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, "Deadringer", Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
 		else if (pPlayer->InCond(TF_COND_FEIGN_DEATH))
-			tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, "Feign", Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
+			tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, "Invisible", Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
 
 		if (float flInvis = pPlayer->GetEffectiveInvisibilityLevel())
-			tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, std::format("Invis {:.0f}%", flInvis * 100), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
+			tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, std::format("Invisible {:.0f}%", flInvis * 100), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
 
 		if (pPlayer->InCond(TF_COND_DISGUISED))
-			tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, "Disguise", Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
+			tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, "Disguised", Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
 
 		if (pPlayer->InCond(TF_COND_AIMING) || pPlayer->InCond(TF_COND_ZOOMED))
 		{
 			switch (pWeapon ? pWeapon->GetWeaponID() : -1)
 			{
 			case TF_WEAPON_MINIGUN:
-				tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, "Rev", Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
+				tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, "Revved", Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
 				break;
 			case TF_WEAPON_SNIPERRIFLE:
 			case TF_WEAPON_SNIPERRIFLE_CLASSIC:
@@ -331,7 +634,7 @@ static inline void StorePlayer(CTFPlayer* pPlayer, CTFPlayer* pLocal, Group_t* p
 			{
 				if (bLocal)
 				{
-					tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, std::format("Charging {:.0f}%", Math::RemapVal(pWeapon->As<CTFSniperRifle>()->m_flChargedDamage(), 0.f, 150.f, 0.f, 100.f)), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
+					tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, std::format("Charge {:.0f}%", Math::RemapVal(pWeapon->As<CTFSniperRifle>()->m_flChargedDamage(), 0.f, 150.f, 0.f, 100.f)), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
 					break;
 				}
 				else
@@ -348,11 +651,11 @@ static inline void StorePlayer(CTFPlayer* pPlayer, CTFPlayer* pLocal, Group_t* p
 					if (CSniperDot* pPlayerDot = fGetSniperDot(pPlayer))
 					{
 						float flChargeTime = std::max(SDK::AttribHookValue(3.f, "mult_sniper_charge_per_sec", pWeapon), 1.5f);
-						tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, std::format("Charging {:.0f}%", Math::RemapVal(TICKS_TO_TIME(I::ClientState->m_ClockDriftMgr.m_nServerTick) - pPlayerDot->m_flChargeStartTime() - 0.3f, 0.f, flChargeTime, 0.f, 100.f)), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
+						tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, std::format("Charge {:.0f}%", Math::RemapVal(TICKS_TO_TIME(I::ClientState->m_ClockDriftMgr.m_nServerTick) - pPlayerDot->m_flChargeStartTime() - 0.3f, 0.f, flChargeTime, 0.f, 100.f)), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
 						break;
 					}
 				}
-				tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, "Charging", Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
+				tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, "Zoomed", Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
 				break;
 			}
 			case TF_WEAPON_COMPOUND_BOW:
@@ -406,18 +709,42 @@ static inline void StoreBuilding(CBaseObject* pBuilding, CTFPlayer* pLocal, Grou
 		const char* sName = "Building";
 		switch (pBuilding->GetClassID())
 		{
-		case ETFClassID::CObjectSentrygun: sName = bIsMini ? "Mini-Sentry" : "Sentry"; break;
+		case ETFClassID::CObjectSentrygun: sName = bIsMini ? "Mini-Sentry" : "Sentrygun"; break;
 		case ETFClassID::CObjectDispenser: sName = "Dispenser"; break;
-		case ETFClassID::CObjectTeleporter: sName = pBuilding->m_iObjectMode() ? "Teleporter Exit" : "Teleporter Entrance";
+		case ETFClassID::CObjectTeleporter: sName = pBuilding->m_iObjectMode() ? "Teleport Exit" : "Teleport Entrance"; break;
 		}
-		tCache.m_vText.emplace_back(ALIGN_TOP, sName, Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
+		std::string sDisplayName = sName;
+		if (pGroup->m_iESP & ESPEnum::Level && !bIsMini)
+			sDisplayName += std::format(" (lvl {})", pBuilding->m_iUpgradeLevel());
+
+		tCache.m_vText.emplace_back(ALIGN_TOP, sDisplayName, Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
 	}
 
 	float flHealth = pBuilding->m_iHealth(), flMaxHealth = pBuilding->m_iMaxHealth();
 	if (pGroup->m_iESP & ESPEnum::HealthBar)
 	{
-		tCache.m_flHealth = std::clamp(flHealth / flMaxHealth, 0.f, 1.f);
-		Color_t tColor = Vars::Colors::IndicatorBad.Value.Lerp(Vars::Colors::IndicatorGood.Value, std::clamp(tCache.m_flHealth, 0.f, 1.f), LerpEnum::HSV);
+		tCache.m_flHealth = flHealth > flMaxHealth
+			? 1.f + std::clamp((flHealth - flMaxHealth) / (floorf(flMaxHealth / 10.f) * 5), 0.f, 1.f)
+			: std::clamp(flHealth / flMaxHealth, 0.f, 1.f);
+
+		// Custom health gradient: low (red) -> medium (yellow) -> full (green)
+		Color_t tColorLow = Color_t(159, 49, 43, 255);     // #9f312b
+		Color_t tColorMid = Color_t(183, 173, 56, 255);    // #b7ad38
+		Color_t tColorFull = Color_t(45, 172, 48, 255);    // #2dac30
+
+		float flHealthClamped = std::clamp(tCache.m_flHealth, 0.f, 1.f);
+		Color_t tColor;
+
+		if (flHealthClamped < 0.5f)
+		{
+			// 0% - 50%: red -> yellow
+			tColor = tColorLow.Lerp(tColorMid, flHealthClamped * 2.f);
+		}
+		else
+		{
+			// 50% - 100%: yellow -> green
+			tColor = tColorMid.Lerp(tColorFull, (flHealthClamped - 0.5f) * 2.f);
+		}
 		tCache.m_vBars.emplace_back(ALIGN_LEFT, tCache.m_flHealth, tColor, Vars::Colors::IndicatorMisc.Value);
 	}
 	if (pGroup->m_iESP & ESPEnum::HealthText)
@@ -446,9 +773,6 @@ static inline void StoreBuilding(CBaseObject* pBuilding, CTFPlayer* pLocal, Grou
 		if (auto pResource = H::Entities.GetResource(); pResource)
 			tCache.m_vText.emplace_back(ALIGN_TOP, F::PlayerUtils.GetPlayerName(iIndex, pResource->GetName(iIndex)), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
 	}
-
-	if (pGroup->m_iESP & ESPEnum::Level && !bIsMini)
-		tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, std::format("Level {}", pBuilding->m_iUpgradeLevel()), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
 
 	if (pGroup->m_iESP & ESPEnum::Flags)
 	{
@@ -823,9 +1147,44 @@ void CESP::DrawPlayers()
 				lOffset += iSpace + iThickness;
 				break;
 			case ALIGN_BOTTOM:
-				fDrawBar(x, y + h + iSpace + bOffset, w, iThickness);
-				bOffset += iSpace + iThickness;
+			{
+				bool bIsUberBar = (tColor.r == 255 && tColor.g == 0 && tColor.b == 255 && !bAdjust);
+
+				int iSizeX = w;
+				int iSizeY = H::Draw.Scale(3, Scale_Round);
+				int iPosX = x;
+				int iPosY = y + h + iSpace + bOffset;
+
+				if (bIsUberBar)
+				{
+					float flRatio = std::clamp(flPercent, 0.f, 1.f);
+
+					H::Draw.LineRect(iPosX, iPosY, iSizeX + 1, iSizeY + 1, { 0, 0, 0, 255 });
+
+					if (flRatio > 0.f)
+					{
+						int iFillSizeX = iSizeX - 2;
+						int iFillSizeY = iSizeY - 2;
+						int iFillPosX = iPosX + 1;
+						int iFillPosY = iPosY + 1;
+
+						H::Draw.FillRect(
+							iFillPosX,
+							iFillPosY,
+							int((iFillSizeX + 1) * flRatio),
+							iFillSizeY + 1,
+							{ 255, 0, 255, 255 }
+						);
+					}
+				}
+				else
+				{
+					fDrawBar(iPosX, iPosY, iSizeX, iThickness);
+				}
+
+				bOffset += iSpace + iSizeY;
 				break;
+			}
 			}
 		}
 
@@ -842,7 +1201,7 @@ void CESP::DrawPlayers()
 				bOffset += nTall;
 				break;
 			case ALIGN_LEFT:
-				H::Draw.StringOutlined(fFont, l - lOffset, y - H::Draw.Scale(2) + h - h * std::min(tCache.m_flHealth, 1.f), tColor, tOutline, ALIGN_TOPRIGHT, sText.c_str());
+				H::Draw.StringOutlined(fFont, l + 6, y - H::Draw.Scale(2) + h - h * std::min(tCache.m_flHealth, 1.f), tColor, tOutline, ALIGN_TOPRIGHT, sText.c_str());
 				break;
 			case ALIGN_TOPRIGHT:
 				H::Draw.StringOutlined(fFont, r, y - H::Draw.Scale(2) + rOffset, tColor, tOutline, ALIGN_TOPLEFT, sText.c_str());
@@ -926,9 +1285,35 @@ void CESP::DrawBuildings()
 				lOffset += iSpace + iThickness;
 				break;
 			case ALIGN_BOTTOM:
-				fDrawBar(x, y + h + iSpace + bOffset, w, iThickness);
-				bOffset += iSpace + iThickness;
+			{
+				float flRatio = std::clamp(flPercent, 0.f, 1.f);
+
+				int iSizeX = w;
+				int iSizeY = H::Draw.Scale(3, Scale_Round);
+				int iPosX = x;
+				int iPosY = y + h + iSpace + bOffset;
+
+				H::Draw.LineRect(iPosX, iPosY, iSizeX + 1, iSizeY + 1, { 0, 0, 0, 255 });
+
+				if (flRatio > 0.f)
+				{
+					int iFillSizeX = iSizeX - 2;
+					int iFillSizeY = iSizeY - 2;
+					int iFillPosX = iPosX + 1;
+					int iFillPosY = iPosY + 1;
+
+					H::Draw.FillRect(
+						iFillPosX,
+						iFillPosY,
+						int((iFillSizeX + 1) * flRatio),
+						iFillSizeY + 1,
+						tColor
+					);
+				}
+
+				bOffset += iSpace + iSizeY;
 				break;
+			}
 			}
 		}
 
@@ -945,7 +1330,7 @@ void CESP::DrawBuildings()
 				bOffset += nTall;
 				break;
 			case ALIGN_LEFT:
-				H::Draw.StringOutlined(fFont, l - lOffset, y - H::Draw.Scale(2) + h - h * std::min(tCache.m_flHealth, 1.f), tColor, tOutline, ALIGN_TOPRIGHT, sText.c_str());
+				H::Draw.StringOutlined(fFont, l + 6, y - H::Draw.Scale(2) + h - h * std::min(tCache.m_flHealth, 1.f), tColor, tOutline, ALIGN_TOPRIGHT, sText.c_str());
 				break;
 			case ALIGN_TOPRIGHT:
 				H::Draw.StringOutlined(fFont, r, y - H::Draw.Scale(2) + rOffset, tColor, tOutline, ALIGN_TOPLEFT, sText.c_str());

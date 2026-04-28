@@ -328,6 +328,12 @@ NAMESPACE_BEGIN(Vars)
 			CVar(SplashRadius, "Splash radius", 90.f, SLIDER_CLAMP | SLIDER_PRECISION, 0.f, 100.f, 10.f, "%g%%");
 			CVar(AutoRelease, "Auto release", 0.f, SLIDER_CLAMP | SLIDER_PRECISION, 0.f, 100.f, 5.f, "%g%%");
 
+			CVar(AimbotLogging, "AimbotLogging", false, NOSAVE | DEBUGVAR);
+			CVar(ManualLogging, "ManualLogging", false, NOSAVE | DEBUGVAR);
+			CVar(Log2File, "Log2File", false, NOSAVE | DEBUGVAR);
+			CVar(DrawHardcoded, "DrawHardcoded", false, NOSAVE | DEBUGVAR);
+			CVar(DrawSplashPoints, "DrawSplashPoints", false, NOSAVE | DEBUGVAR);
+
 			CVar(GroundSamples, "Samples", 33, NOSAVE | DEBUGVAR, 3, 66);
 			CVar(GroundStraightFuzzyValue, "Straight fuzzy value", 100.f, NOSAVE | DEBUGVAR | SLIDER_PRECISION, 0.f, 500.f, 25.f);
 			CVar(GroundLowMinimumSamples, "Low min samples", 16, NOSAVE | DEBUGVAR, 3, 66);
@@ -360,8 +366,8 @@ NAMESPACE_BEGIN(Vars)
 			CVar(HuntsmanPullNoZ, "Pull no Z", false, NOSAVE | DEBUGVAR);
 
 			CVarEnum(SplashMode, "Splash mode", 0, NOSAVE | DEBUGVAR, nullptr,
-				VA_LIST("Trace", "Face"),
-				Trace, Face);
+				VA_LIST("Face", "Trace"),
+				Face, Trace);
 			CVar(SplashAirCount, "Splash air count", 0, NOSAVE | DEBUGVAR | SLIDER_MIN, 0, 10);
 			CVar(SplashPointsDirect, "Splash points direct", 100, NOSAVE | DEBUGVAR | SLIDER_MIN | SLIDER_PRECISION, 0, 400, 5);
 			CVar(SplashPointsArc, "Splash points arc", 100, NOSAVE | DEBUGVAR | SLIDER_MIN | SLIDER_PRECISION, 0, 400, 5);

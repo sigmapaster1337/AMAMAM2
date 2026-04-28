@@ -22,6 +22,10 @@ struct Target_t
 
 	TickRecord* m_pRecord = nullptr;
 	bool m_bBacktrack = false;
+
+	bool m_bDormant = false;
+	Vec3 m_vDormantPos = {};
+	int m_iDormantFlags = 0;
 };
 
 class CAimbotGlobal

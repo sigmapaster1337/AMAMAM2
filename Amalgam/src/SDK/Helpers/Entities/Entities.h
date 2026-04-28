@@ -16,6 +16,9 @@ struct DormantData
 {
 	Vec3 m_vLocation;
 	float m_flLastUpdate = 0.f;
+	float m_flReceiveTime = 0.f;
+	int m_iFlags = 0;
+	bool m_bFromSound = false;
 };
 
 struct VelFixRecord
@@ -85,6 +88,7 @@ public:
 	std::deque<VelFixRecord>* GetOrigins(byte iIndex);
 	uint32_t GetModel(unsigned short iIndex);
 	bool GetDormancy(unsigned short iIndex);
+	DormantData* GetDormancyData(unsigned short iIndex);
 
 	int GetPriority(int iIndex);
 	int GetPriority(uint32_t uAccountID);

@@ -50,12 +50,14 @@ struct Setup_t
 {
 	Vec3 m_vPoint = {};
 	uint8_t m_iType = PointTypeEnum::Geometry;
+	bool m_bHardcoded = false;
 };
 struct Point_t
 {
 	Vec3 m_vPoint = {};
 	Solution_t m_tSolution = {};
 	uint8_t m_iType = PointTypeEnum::Direct;
+	bool m_bHardcoded = false;
 };
 
 struct Offset_t
@@ -109,6 +111,8 @@ private:
 
 	bool Aim(const Vec3& vCurAngle, const Vec3& vToAngle, Vec3& vOut, int iMethod = Vars::Aimbot::General::AimType.Value);
 	void Aim(CUserCmd* pCmd, Vec3& vAngles, int iMethod = Vars::Aimbot::General::AimType.Value);
+	void MaintainPostShotAttack(CTFWeaponBase* pWeapon, CUserCmd* pCmd);
+	void RecordPostShotAttack(CTFWeaponBase* pWeapon);
 
 	Info_t m_tInfo = {};
 	MoveStorage m_tMoveStorage = {};
@@ -116,6 +120,8 @@ private:
 	std::vector<Setup_t> m_vSplashPoints = {};
 
 	bool m_bLastTickHeld = false;
+	int m_iPostShotAttackUntil = 0;
+	int m_iPostShotAttackWeapon = 0;
 
 	float m_flTimeTo = std::numeric_limits<float>::max();
 	std::vector<Vec3> m_vPlayerPath = {};
@@ -125,6 +131,7 @@ private:
 	Vec3 m_vAngleTo = {};
 	Vec3 m_vPredicted = {};
 	Vec3 m_vTarget = {};
+	bool m_bTargetSplash = false;
 
 	int m_iResult = false;
 	bool m_bUpdate = true;

@@ -82,7 +82,7 @@ void CEntities::Store()
 		case ETFClassID::CTFProjectile_Flare:
 		case ETFClassID::CTFBaseProjectile:
 		case ETFClassID::CTFProjectile_EnergyRing:
-		//case ETFClassID::CTFProjectile_Syringe:
+			//case ETFClassID::CTFProjectile_Syringe:
 		{
 			if ((nClassID == ETFClassID::CTFProjectile_Cleaver || nClassID == ETFClassID::CTFStunBall) && pEntity->As<CTFGrenadePipebombProjectile>()->m_bTouched()
 				|| (nClassID == ETFClassID::CTFProjectile_Arrow || nClassID == ETFClassID::CTFProjectile_GrapplingHook) && !pEntity->m_MoveType())
@@ -250,7 +250,7 @@ void CEntities::Store()
 		m_aModels[n] = FNV1A::Hash32(I::ModelInfoClient->GetModelName(pPlayer->GetModel()));
 		m_aGroups[EntityEnum::PlayerAll].push_back(pPlayer);
 		m_aGroups[pPlayer->m_iTeamNum() != m_pLocal->m_iTeamNum() ? EntityEnum::PlayerEnemy : EntityEnum::PlayerTeam].push_back(pPlayer);
-		
+
 		if (n != I::EngineClient->GetLocalPlayer())
 		{
 			bool bDormant = pPlayer->IsDormant();
@@ -318,6 +318,77 @@ void CEntities::Store()
 }
 
 static std::unordered_map<unsigned short, DormantData> s_mDormancy = {};
+static std::array<DormantData, MAX_EDICTS> s_aSoundDormancy = {};
+
+static float GetDormantDuration(CBaseEntity* pEntity, bool bFromSound)
+{
+	switch (pEntity->GetClassID())
+	{
+	case ETFClassID::CTFPlayer: return bFromSound ? 10.f : 1.f;
+	case ETFClassID::CObjectSentrygun:
+	case ETFClassID::CObjectDispenser:
+	case ETFClassID::CObjectTeleporter: return 5.f;
+	}
+
+	return 0.f;
+}
+
+static bool AdjustDormantSound(CBaseEntity* pEntity, Vec3& vOrigin, int& iFlags)
+{
+	if (vOrigin.IsZero())
+		return false;
+
+	CGameTrace trace = {};
+	CTraceFilterWorldAndPropsOnly filter = {};
+	filter.pSkip = pEntity;
+
+	const Vec3 vStart = vOrigin + Vec3(0.f, 0.f, 1.f);
+	const Vec3 vEnd = vStart - Vec3(0.f, 0.f, 100.f);
+	SDK::Trace(vStart, vEnd, MASK_SOLID, &filter, &trace);
+	if (trace.allsolid)
+		return false;
+
+	if (trace.fraction <= 0.97f)
+		vOrigin = trace.endpos;
+
+	if (pEntity->IsPlayer())
+	{
+		iFlags = pEntity->As<CTFPlayer>()->m_fFlags();
+		if (trace.fraction < 0.50f)
+			iFlags |= FL_DUCKING;
+		else
+			iFlags &= ~FL_DUCKING;
+
+		if (trace.fraction < 1.f)
+			iFlags |= FL_ONGROUND;
+		else
+			iFlags &= ~FL_ONGROUND;
+	}
+
+	return true;
+}
+
+static bool ShouldStoreDormantSound(unsigned short n, const Vec3& vOrigin, float flCurTime)
+{
+	const auto& tLastSound = s_aSoundDormancy[n];
+	if (tLastSound.m_flReceiveTime <= 0.f)
+		return true;
+
+	if (flCurTime - tLastSound.m_flReceiveTime > 0.05f)
+		return true;
+
+	return tLastSound.m_vLocation.DistToSqr(vOrigin) > 1.f;
+}
+
+static void StoreDormantPoint(unsigned short n, const Vec3& vOrigin, float flDuration, bool bFromSound, int iFlags = 0)
+{
+	const float flCurTime = I::GlobalVars->curtime;
+	const DormantData tDormancy = { vOrigin, flCurTime + flDuration, flCurTime, iFlags, bFromSound };
+	s_mDormancy[n] = tDormancy;
+	if (bFromSound)
+		s_aSoundDormancy[n] = tDormancy;
+}
+
 void CEntities::Clear(bool bShutdown)
 {
 	m_pLocal = nullptr;
@@ -339,42 +410,41 @@ void CEntities::Clear(bool bShutdown)
 		m_aModels = {};
 		m_aDormancy = {};
 		s_mDormancy.clear();
+		s_aSoundDormancy = {};
 	}
 }
 
 void CEntities::ManualNetwork(const StartSoundParams_t& params)
 {
 	int n = params.soundsource;
-	if (n <= 0 || n > MAX_EDICTS - 1 || !params.origin || n == I::EngineClient->GetLocalPlayer())
+	if (n <= 0 || n > MAX_EDICTS - 1 || params.origin.IsZero() || n == I::EngineClient->GetLocalPlayer())
 		return;
 
-	auto pEntity = I::ClientEntityList->GetClientEntity(n)->As<CBaseEntity>();
+	auto pClientEntity = I::ClientEntityList->GetClientEntity(n);
+	if (!pClientEntity)
+		return;
+
+	auto pEntity = pClientEntity->As<CBaseEntity>();
 	if (!pEntity || !pEntity->IsDormant() || !pEntity->IsPlayer() && !pEntity->IsBuilding())
 		return;
 
-	float flDuration = 0.f;
-	switch (pEntity->GetClassID())
-	{
-	case ETFClassID::CTFPlayer: flDuration = 1.f; break;
-	case ETFClassID::CObjectSentrygun:
-	case ETFClassID::CObjectDispenser:
-	case ETFClassID::CObjectTeleporter: flDuration = 5.f; break;
-	}
-	if (flDuration)
-		s_mDormancy[n] = { params.origin, I::GlobalVars->curtime + flDuration }, m_aDormancy[n] = true;
+	float flDuration = GetDormantDuration(pEntity, true);
+	if (!flDuration)
+		return;
+
+	Vec3 vOrigin = params.origin;
+	int iFlags = 0;
+	if (!AdjustDormantSound(pEntity, vOrigin, iFlags) || !ShouldStoreDormantSound(n, vOrigin, I::GlobalVars->curtime))
+		return;
+
+	StoreDormantPoint(n, vOrigin, flDuration, true, iFlags);
+	m_aDormancy[n] = true;
 }
 bool CEntities::ManageDormancy(CBaseEntity* pEntity)
 {
 	bool bDormant = pEntity->IsDormant();
 
-	float flDuration = 0.f;
-	switch (pEntity->GetClassID())
-	{
-	case ETFClassID::CTFPlayer: flDuration = 1.f; break;
-	case ETFClassID::CObjectSentrygun:
-	case ETFClassID::CObjectDispenser:
-	case ETFClassID::CObjectTeleporter: flDuration = 5.f; break;
-	}
+	float flDuration = GetDormantDuration(pEntity, false);
 	if (!flDuration)
 		return bDormant;
 
@@ -388,21 +458,46 @@ bool CEntities::ManageDormancy(CBaseEntity* pEntity)
 		{
 			if (auto pResource = GetResource(); pResource)
 			{
-				pEntity->As<CTFPlayer>()->m_lifeState() = pResource->m_bAlive(n) ? LIFE_ALIVE : LIFE_DEAD;
+				bool bAlive = pResource->m_bAlive(n);
+				pEntity->As<CTFPlayer>()->m_lifeState() = bAlive ? LIFE_ALIVE : LIFE_DEAD;
 				pEntity->As<CTFPlayer>()->m_iHealth() = pResource->m_iHealth(n);
+				if (!bAlive)
+				{
+					s_mDormancy.erase(n);
+					s_aSoundDormancy[n] = {};
+					m_aDormancy[n] = false;
+					return bDormant;
+				}
 			}
 		}
 		if (s_mDormancy.contains(n))
 		{
 			auto& tDormancy = s_mDormancy[n];
 			if (tDormancy.m_flLastUpdate - I::GlobalVars->curtime > 0.f)
+			{
+				if (pEntity->IsPlayer() && tDormancy.m_bFromSound)
+					pEntity->As<CTFPlayer>()->m_fFlags() = tDormancy.m_iFlags;
 				pEntity->SetAbsOrigin(pEntity->m_vecOrigin() = tDormancy.m_vLocation);
+			}
 			else
-				s_mDormancy.erase(n), m_aDormancy[n] = false;
+			{
+				s_mDormancy.erase(n);
+				s_aSoundDormancy[n] = {};
+				m_aDormancy[n] = false;
+			}
 		}
 	}
 	else if (!pEntity->IsPlayer() || pEntity->As<CTFPlayer>()->IsAlive())
-		s_mDormancy[n] = { pEntity->m_vecOrigin(), I::GlobalVars->curtime + flDuration }, m_aDormancy[n] = true;
+	{
+		StoreDormantPoint(n, pEntity->m_vecOrigin(), flDuration, false, pEntity->IsPlayer() ? pEntity->As<CTFPlayer>()->m_fFlags() : 0);
+		m_aDormancy[n] = true;
+	}
+	else
+	{
+		s_mDormancy.erase(n);
+		s_aSoundDormancy[n] = {};
+		m_aDormancy[n] = false;
+	}
 	return bDormant;
 }
 
@@ -463,12 +558,12 @@ bool CEntities::IsPowerup(uint32_t uHash)
 	case FNV1A::Hash32Const("models/pickups/pickup_powerup_precision.mdl"):
 	case FNV1A::Hash32Const("models/pickups/pickup_powerup_reflect.mdl"):
 	case FNV1A::Hash32Const("models/pickups/pickup_powerup_regen.mdl"):
-	//case FNV1A::Hash32Const("models/pickups/pickup_powerup_resistance.mdl"):
+		//case FNV1A::Hash32Const("models/pickups/pickup_powerup_resistance.mdl"):
 	case FNV1A::Hash32Const("models/pickups/pickup_powerup_strength.mdl"):
-	//case FNV1A::Hash32Const("models/pickups/pickup_powerup_strength_arm.mdl"):
+		//case FNV1A::Hash32Const("models/pickups/pickup_powerup_strength_arm.mdl"):
 	case FNV1A::Hash32Const("models/pickups/pickup_powerup_supernova.mdl"):
-	//case FNV1A::Hash32Const("models/pickups/pickup_powerup_thorns.mdl"):
-	//case FNV1A::Hash32Const("models/pickups/pickup_powerup_uber.mdl"):
+		//case FNV1A::Hash32Const("models/pickups/pickup_powerup_thorns.mdl"):
+		//case FNV1A::Hash32Const("models/pickups/pickup_powerup_uber.mdl"):
 	case FNV1A::Hash32Const("models/pickups/pickup_powerup_vampire.mdl"):
 		return true;
 	}
@@ -521,6 +616,14 @@ void CEntities::SetAvgVelocity(byte iIndex, Vec3 vAvgVelocity) { if (iIndex < MA
 std::deque<VelFixRecord>* CEntities::GetOrigins(byte iIndex) { return iIndex < MAX_PLAYERS ? &m_aOrigins[iIndex] : nullptr; }
 uint32_t CEntities::GetModel(unsigned short iIndex) { return iIndex < MAX_EDICTS ? m_aModels[iIndex] : 0; }
 bool CEntities::GetDormancy(unsigned short iIndex) { return iIndex < MAX_EDICTS ? m_aDormancy[iIndex] : false; }
+DormantData* CEntities::GetDormancyData(unsigned short iIndex)
+{
+	if (iIndex >= MAX_EDICTS)
+		return nullptr;
+
+	auto it = s_mDormancy.find(iIndex);
+	return it != s_mDormancy.end() ? &it->second : nullptr;
+}
 
 int CEntities::GetPriority(int iIndex) { return m_mIPriorities[iIndex]; }
 int CEntities::GetPriority(uint32_t uAccountID) { return m_mUPriorities[uAccountID]; }

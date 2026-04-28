@@ -21,16 +21,16 @@ void CAimbotGlobal::SortTargetsPre(std::vector<Target_t>& vTargets, int iMethod)
 	{
 	case Vars::Aimbot::General::TargetSelectionEnum::FOV:
 		std::sort(vTargets.begin(), vTargets.end(), [&](const Target_t& a, const Target_t& b) -> bool
-		{
-			return a.m_flFOVTo < b.m_flFOVTo;
-		});
+			{
+				return a.m_flFOVTo < b.m_flFOVTo;
+			});
 		break;
 	case Vars::Aimbot::General::TargetSelectionEnum::Distance:
 	case Vars::Aimbot::General::TargetSelectionEnum::Hybrid:
 		std::sort(vTargets.begin(), vTargets.end(), [&](const Target_t& a, const Target_t& b) -> bool
-		{
-			return a.m_flDistTo < b.m_flDistTo;
-		});
+			{
+				return a.m_flDistTo < b.m_flDistTo;
+			});
 		break;
 	}
 }
@@ -41,16 +41,16 @@ void CAimbotGlobal::SortTargetsPost(std::vector<Target_t>& vTargets, int iMethod
 	{
 	case Vars::Aimbot::General::TargetSelectionEnum::Hybrid:
 		std::sort(vTargets.begin(), vTargets.end(), [&](const Target_t& a, const Target_t& b) -> bool
-		{
-			return a.m_flFOVTo < b.m_flFOVTo;
-		});
+			{
+				return a.m_flFOVTo < b.m_flFOVTo;
+			});
 		break;
 	}
 
 	std::sort(vTargets.begin(), vTargets.end(), [&](const Target_t& a, const Target_t& b) -> bool
-	{
-		return a.m_nPriority > b.m_nPriority;
-	});
+		{
+			return a.m_nPriority > b.m_nPriority;
+		});
 }
 
 // this won't prevent shooting bones outside of fov

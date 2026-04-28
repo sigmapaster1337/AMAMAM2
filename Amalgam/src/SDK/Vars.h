@@ -188,8 +188,6 @@ NAMESPACE_BEGIN(Vars)
 		CVar(ConditionsDisplay, "Conditions display", DragBox_t(), VISUAL | NOBIND);
 		CVar(SeedPredictionDisplay, "Seed prediction display", DragBox_t(), VISUAL | NOBIND);
 
-		CVar(Scale, "Scale", 1.f, NOBIND | SLIDER_MIN | SLIDER_PRECISION | SLIDER_NOAUTOUPDATE, 0.75f, 2.f, 0.25f);
-		CVar(CheapText, "Cheap text", false, NOBIND);
 
 		NAMESPACE_BEGIN(Theme)
 			CVar(Accent, "Accent color", Color_t(175, 150, 255, 255), VISUAL);
@@ -420,6 +418,11 @@ NAMESPACE_BEGIN(Vars)
 			CVar(AutoVaccinator, "Auto vaccinator", false);
 			CVar(ActivateOnVoice, "Activate on voice", false);
 
+			CVar(AutoUberSelfEnabled, "Auto uber self", false);
+			CVar(AutoUberSelfHealth, "Auto uber self health %", 10, SLIDER_CLAMP, 1, 99);
+			CVar(AutoUberTargetEnabled, "Auto uber target", false);
+			CVar(AutoUberTargetHealth, "Auto uber target health %", 10, SLIDER_CLAMP, 1, 99);
+
 			CVar(AutoVaccinatorBulletScale, "Auto vaccinator bullet scale", 100.f, NOSAVE | DEBUGVAR | SLIDER_MIN | SLIDER_PRECISION, 0.f, 200.f, 10.f, "%g%%");
 			CVar(AutoVaccinatorBlastScale, "Auto vaccinator blast scale", 100.f, NOSAVE | DEBUGVAR | SLIDER_MIN | SLIDER_PRECISION, 0.f, 200.f, 10.f, "%g%%");
 			CVar(AutoVaccinatorFireScale, "Auto vaccinator fire scale", 100.f, NOSAVE | DEBUGVAR | SLIDER_MIN | SLIDER_PRECISION, 0.f, 200.f, 10.f, "%g%%");
@@ -450,7 +453,6 @@ NAMESPACE_BEGIN(Vars)
 		CVar(TickLimit, "Tick limit", 22, SLIDER_CLAMP, 2, 22);
 		CVar(WarpRate, "Warp rate", 22, SLIDER_CLAMP, 2, 22);
 		CVar(RechargeLimit, "Recharge limit", 24, SLIDER_MIN, 1, 24);
-		CVar(PassiveRecharge, "Passive recharge", 0, SLIDER_CLAMP, 0, 67);
 	NAMESPACE_END(DoubleTap)
 
 	NAMESPACE_BEGIN(Fakelag)

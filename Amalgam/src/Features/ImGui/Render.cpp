@@ -17,13 +17,6 @@ void CRender::Render(IDirect3DDevice9* pDevice)
 	});
 
 	LoadColors();
-	{
-		static float flStaticScale = Vars::Menu::Scale.Value;
-		float flOldScale = flStaticScale;
-		float flNewScale = flStaticScale = Vars::Menu::Scale.Value;
-		if (flNewScale != flOldScale)
-			Reload();
-	}
 
 	DWORD dwOldRGB; pDevice->GetRenderState(D3DRS_SRGBWRITEENABLE, &dwOldRGB);
 	pDevice->SetRenderState(D3DRS_SRGBWRITEENABLE, false);

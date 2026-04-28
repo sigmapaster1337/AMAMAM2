@@ -40,7 +40,7 @@ private:
 	std::unordered_map<uint32, int> m_mAvatars = {};
 
 public:
-	inline float Scale(float flN = 1.f, int iFlags = Scale_None, float flScale = Vars::Menu::Scale.Value)
+	inline float Scale(float flN = 1.f, int iFlags = Scale_None, float flScale = 1)
 	{
 		flN *= flScale;
 		switch (iFlags)
@@ -52,7 +52,7 @@ public:
 		return flN;
 	}
 
-	inline float Unscale(float flN = 1.f, int iFlags = Scale_None, float flScale = Vars::Menu::Scale.Value)
+	inline float Unscale(float flN = 1.f, int iFlags = Scale_None, float flScale = 1)
 	{
 		flN /= flScale;
 		switch (iFlags)

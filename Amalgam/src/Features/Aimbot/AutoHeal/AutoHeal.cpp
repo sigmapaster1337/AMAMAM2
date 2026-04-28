@@ -621,6 +621,36 @@ void CAutoHeal::AutoVaccinator(CTFPlayer* pLocal, CWeaponMedigun* pWeapon, CUser
 	m_flChargeLevel = pWeapon->m_flChargeLevel();
 }
 
+void CAutoHeal::AutoUberSelf(CTFPlayer* pLocal, CWeaponMedigun* pWeapon, CUserCmd* pCmd)
+{
+	if (!Vars::Aimbot::Healing::AutoUberSelfEnabled.Value || pWeapon->m_flChargeLevel() < 1.f)
+		return;
+
+	int iHealth = pLocal->m_iHealth();
+	int iMaxHealth = pLocal->GetMaxHealth();
+	int iThreshold = (iMaxHealth * Vars::Aimbot::Healing::AutoUberSelfHealth.Value) / 100;
+
+	if (iHealth <= iThreshold)
+		pCmd->buttons |= IN_ATTACK2;
+}
+
+void CAutoHeal::AutoUberTarget(CTFPlayer* pLocal, CWeaponMedigun* pWeapon, CUserCmd* pCmd)
+{
+	if (!Vars::Aimbot::Healing::AutoUberTargetEnabled.Value || pWeapon->m_flChargeLevel() < 1.f)
+		return;
+
+	auto pTarget = pWeapon->m_hHealingTarget().Get()->As<CTFPlayer>();
+	if (!pTarget)
+		return;
+
+	int iHealth = pTarget->m_iHealth();
+	int iMaxHealth = pTarget->GetMaxHealth();
+	int iThreshold = (iMaxHealth * Vars::Aimbot::Healing::AutoUberTargetHealth.Value) / 100;
+
+	if (iHealth <= iThreshold)
+		pCmd->buttons |= IN_ATTACK2;
+}
+
 void CAutoHeal::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd)
 {
 	if (pWeapon->GetWeaponID() != TF_WEAPON_MEDIGUN)
@@ -632,6 +662,8 @@ void CAutoHeal::Run(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCmd* pCmd)
 	}
 
 	AutoHeal(pLocal, pWeapon->As<CWeaponMedigun>(), pCmd);
+	AutoUberSelf(pLocal, pWeapon->As<CWeaponMedigun>(), pCmd);
+	AutoUberTarget(pLocal, pWeapon->As<CWeaponMedigun>(), pCmd);
 
 	ActivateOnVoice(pLocal, pWeapon->As<CWeaponMedigun>(), pCmd);
 	m_mMedicCallers.clear();

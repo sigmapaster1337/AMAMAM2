@@ -45,6 +45,8 @@ private:
 	std::vector<Sightline_t> m_vSightLines = {};
 	std::vector<PickupData_t> m_vPickups = {};
 
+	std::unordered_map<int, Vec3> m_mItemPositions;
+
 #ifdef DEBUG_TEXT
 	std::vector<DebugText_t> m_vDebugText = {};
 #endif

@@ -291,6 +291,7 @@ static inline const char* GetWeaponNameByID(int iWeaponID, int iItemDefIndex)
 
 	default: break;
 	}
+	return "Unknown";
 }
 
 static inline void StorePlayer(CTFPlayer* pPlayer, CTFPlayer* pLocal, Group_t* pGroup, std::unordered_map<CBaseEntity*, PlayerCache_t>& mCache)

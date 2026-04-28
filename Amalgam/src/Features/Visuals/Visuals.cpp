@@ -841,19 +841,68 @@ void CVisuals::Event(IGameEvent* pEvent, uint32_t uHash)
 			return;
 
 		int iType = 0;
-		{
-			const char* sItemName = pEvent->GetString("item");
-			if (std::strstr(sItemName, "medkit"))
-				iType = TargetsEnum::Health;
-			else if (std::strstr(sItemName, "ammopack"))
-				iType = TargetsEnum::Ammo;
-		}
+		const char* sItemName = pEvent->GetString("item");
+
+		// Filter out sandwiches first
+		if (std::strstr(sItemName, "lunchbox") || std::strstr(sItemName, "sandwich"))
+			break;
+
+		if (std::strstr(sItemName, "medkit"))
+			iType = TargetsEnum::Health;
+		else if (std::strstr(sItemName, "ammopack"))
+			iType = TargetsEnum::Ammo;
+		else
+			break;
 
 		Group_t* pGroup = nullptr;
 		if (!F::Groups.GetGroup(iType, pGroup, pEntity) || !pGroup->m_bPickupTimer)
 			return;
 
-		m_vPickups.emplace_back(iType, I::GlobalVars->curtime + 10.f, pEntity->m_vecOrigin());
+		// Only process if we actually have stored positions (real items)
+		if (m_mItemPositions.empty())
+			break;
+
+		Vec3 vPlayerPos = pEntity->m_vecOrigin();
+		Vec3 vItemPos = vPlayerPos;
+		float flClosestDist = FLT_MAX;
+		int iClosestIndex = -1;
+
+		bool bFoundItem = false;
+
+		for (const auto& [iEntIndex, vPos] : m_mItemPositions)
+		{
+			// Skip if we already have a timer at this position
+			bool bAlreadyUsed = false;
+			for (const auto& pickup : m_vPickups)
+			{
+				if (pickup.m_vLocation.DistTo(vPos) < 10.f)
+				{
+					bAlreadyUsed = true;
+					break;
+				}
+			}
+			if (bAlreadyUsed)
+				continue;
+
+			float flDist = vPlayerPos.DistTo(vPos);
+			if (flDist < flClosestDist && flDist < 200.f)
+			{
+				flClosestDist = flDist;
+				vItemPos = vPos;
+				iClosestIndex = iEntIndex;
+				bFoundItem = true;
+			}
+		}
+
+		// Only add timer if we found a real item position
+		if (!bFoundItem)
+			break;
+
+		m_vPickups.emplace_back(iType, I::GlobalVars->curtime + 10.f, vItemPos);
+
+		if (iClosestIndex != -1)
+			m_mItemPositions.erase(iClosestIndex);
+
 		return;
 	}
 	case FNV1A::Hash32Const("client_disconnect"):
@@ -875,6 +924,39 @@ void CVisuals::Event(IGameEvent* pEvent, uint32_t uHash)
 
 void CVisuals::Store()
 {
+	// Store all item positions
+	m_mItemPositions.clear();
+
+	for (int i = 0; i < I::ClientEntityList->GetHighestEntityIndex(); i++)
+	{
+		auto pEntity = I::ClientEntityList->GetClientEntity(i);
+		if (!pEntity) continue;
+
+		if (pEntity->GetClassID() != ETFClassID::CBaseAnimating)
+			continue;
+
+		const char* modelName = I::ModelInfoClient->GetModelName(pEntity->GetModel());
+		if (!modelName) continue;
+
+		// Filter out all food items (sandwiches, plates, etc.)
+		if (std::strstr(modelName, "banana") ||
+			std::strstr(modelName, "plate") ||
+			std::strstr(modelName, "sandwich") ||
+			std::strstr(modelName, "meat") ||
+			std::strstr(modelName, "chocolate") ||
+			std::strstr(modelName, "fishcake") ||
+			std::strstr(modelName, "mushroom") ||
+			std::strstr(modelName, "steak") ||
+			std::strstr(modelName, "foodcan"))
+			continue;
+
+		// Now store actual medkits and ammo
+		if (std::strstr(modelName, "medkit"))
+			m_mItemPositions[i] = pEntity->GetAbsOrigin();
+		else if (std::strstr(modelName, "ammo"))
+			m_mItemPositions[i] = pEntity->GetAbsOrigin();
+	}
+
 	m_vSightLines.clear();
 	if (!F::Groups.GroupsActive())
 		return;

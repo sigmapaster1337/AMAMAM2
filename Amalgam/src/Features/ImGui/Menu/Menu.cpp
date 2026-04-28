@@ -217,6 +217,18 @@ void CMenu::MenuAimbot(int iTab)
 					FToggle(Vars::Aimbot::Healing::AutoSandvich, FToggleEnum::Right);
 					FToggle(Vars::Aimbot::Healing::AutoVaccinator, FToggleEnum::Left);
 					FToggle(Vars::Aimbot::Healing::ActivateOnVoice, FToggleEnum::Right);
+					FToggle(Vars::Aimbot::Healing::AutoUberSelfEnabled, FToggleEnum::Left);
+					PushTransparent(!Vars::Aimbot::Healing::AutoUberSelfEnabled.Value);
+					{
+						FSlider(Vars::Aimbot::Healing::AutoUberSelfHealth, FSliderEnum::Right);
+					}
+					PopTransparent();
+					FToggle(Vars::Aimbot::Healing::AutoUberTargetEnabled, FToggleEnum::Left);
+					PushTransparent(!Vars::Aimbot::Healing::AutoUberTargetEnabled.Value);
+					{
+						FSlider(Vars::Aimbot::Healing::AutoUberTargetHealth, FSliderEnum::Right);
+					}
+					PopTransparent();
 				} EndSection();
 				if (Vars::Debug::Options.Value)
 				{
@@ -584,7 +596,6 @@ void CMenu::MenuHVH(int iTab)
 					FSlider(Vars::Doubletap::TickLimit, FSliderEnum::Left);
 					FSlider(Vars::Doubletap::WarpRate, FSliderEnum::Right);
 					FSlider(Vars::Doubletap::RechargeLimit, FSliderEnum::Left);
-					FSlider(Vars::Doubletap::PassiveRecharge, FSliderEnum::Right);
 				} EndSection();
 				if (Section("Fakelag"))
 				{
@@ -1237,10 +1248,7 @@ void CMenu::MenuVisuals(int iTab)
 				if (Section("Indicators"))
 				{
 					FDropdown(Vars::Menu::Indicators);
-					if (FSlider(Vars::Menu::Scale))
-						H::Fonts.Reload();
-					if (FToggle(Vars::Menu::CheapText))
-						H::Fonts.Reload();
+
 				} EndSection();
 				if (Vars::Debug::Options.Value)
 				{

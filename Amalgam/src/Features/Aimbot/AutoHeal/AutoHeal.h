@@ -7,6 +7,8 @@ class CAutoHeal
 {
 private:
 	void AutoHeal(CTFPlayer* pLocal, CWeaponMedigun* pWeapon, CUserCmd* pCmd);
+	void AutoUberSelf(CTFPlayer* pLocal, CWeaponMedigun* pWeapon, CUserCmd* pCmd);
+	void AutoUberTarget(CTFPlayer* pLocal, CWeaponMedigun* pWeapon, CUserCmd* pCmd);
 	void ActivateOnVoice(CTFPlayer* pLocal, CWeaponMedigun* pWeapon, CUserCmd* pCmd);
 	void AutoVaccinator(CTFPlayer* pLocal, CWeaponMedigun* pWeapon, CUserCmd* pCmd);
 	void GetDangers(CTFPlayer* pTarget, bool bVaccinator, float& flBulletDanger, float& flBlastDanger, float& flFireDanger);

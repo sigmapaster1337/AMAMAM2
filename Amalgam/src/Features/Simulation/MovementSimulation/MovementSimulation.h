@@ -27,6 +27,15 @@ struct MoveStorage
 
 	bool m_bFailed = false;
 	bool m_bInitFailed = false;
+	// NEW: Smoothing variables
+	float m_flSmoothedYaw = 0.f;
+
+	// NEW: Per-player yaw tracking (fixes static variable bug)
+	int m_iYawChanges = 0;
+	int m_iYawStart = 0;
+	int m_iYawSign = 0;
+	bool m_bYawZero = false;
+
 };
 
 struct MoveData
@@ -41,12 +50,12 @@ struct MoveData
 class CMovementSimulation
 {
 private:
-	void Store(MoveStorage& tMoveStorage);
-	void Reset(MoveStorage& tMoveStorage);
+	void Store(MoveStorage& tStorage);
+	void Reset(MoveStorage& tStorage);
 
-	void SetupMoveData(MoveStorage& tMoveStorage);
-	void GetAverageYaw(MoveStorage& tMoveStorage, int iSamples);
-	bool StrafePrediction(MoveStorage& tMoveStorage, bool bHitchance = false);
+	bool SetupMoveData(MoveStorage& tStorage);
+	void GetAverageYaw(MoveStorage& tStorage, int iSamples);
+	bool StrafePrediction(MoveStorage& tStorage, int iSamples);
 
 	void SetBounds(CTFPlayer* pPlayer);
 	void RestoreBounds(CTFPlayer* pPlayer);
@@ -60,13 +69,13 @@ private:
 
 public:
 	void Store();
-	void StorePlayer(CTFPlayer* pPlayer, CMoveData& tMoveData, float flTime);
 
-	bool Initialize(CBaseEntity* pEntity, MoveStorage& tMoveStorage, bool bHitchance = true, bool bStrafe = true);
-	bool SetDuck(MoveStorage& tMoveStorage, bool bDuck);
-	void RunTick(MoveStorage& tMoveStorage, bool bPath = true, RunTickCallback* pCallback = nullptr);
-	void RunTick(MoveStorage& tMoveStorage, bool bPath, RunTickCallback fCallback);
-	void Restore(MoveStorage& tMoveStorage);
+	bool Initialize(CBaseEntity* pEntity, MoveStorage& tStorage, bool bHitchance = true, bool bStrafe = true);
+	bool SetDuck(MoveStorage& tStorage, bool bDuck);
+	void RunTick(MoveStorage& tStorage, bool bPath = true, std::function<void(CMoveData&)>* pCallback = nullptr);
+	void RunTick(MoveStorage& tStorage, bool bPath, std::function<void(CMoveData&)> fCallback);
+	void StorePlayer(CTFPlayer* pPlayer, CMoveData& tMoveData, float flTime);
+	void Restore(MoveStorage& tStorage);
 
 	float GetPredictedDelta(CBaseEntity* pEntity);
 };

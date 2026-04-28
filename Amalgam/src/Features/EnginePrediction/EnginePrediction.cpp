@@ -61,6 +61,11 @@ void CEnginePrediction::Simulate(CTFPlayer* pLocal, CUserCmd* pCmd)
 
 	if (static int nLastTickBase = 0; nLastTickBase != nOldTickBase)
 		F::MoveSim.StorePlayer(pLocal, m_tMoveData, TICKS_TO_TIME(nOldTickBase)), nLastTickBase = nOldTickBase;
+
+	m_vOrigin = m_tMoveData.m_vecAbsOrigin;
+	m_vVelocity = m_tMoveData.m_vecVelocity;
+	m_vDirection = { m_tMoveData.m_flForwardMove, -m_tMoveData.m_flSideMove, m_tMoveData.m_flUpMove };
+	m_vAngles = m_tMoveData.m_vecViewAngles;
 }
 
 
@@ -84,7 +89,7 @@ void CEnginePrediction::Start(CTFPlayer* pLocal, CUserCmd* pCmd)
 	I::GlobalVars->frametime = I::Prediction->m_bEnginePaused ? 0.f : TICK_INTERVAL;
 
 	size_t iSize = pLocal->GetIntermediateDataSize();
-	if (!m_tLocal.m_pData) 
+	if (!m_tLocal.m_pData)
 	{
 		m_tLocal.m_pData = reinterpret_cast<byte*>(I::MemAlloc->Alloc(iSize));
 		m_tLocal.m_iSize = iSize;

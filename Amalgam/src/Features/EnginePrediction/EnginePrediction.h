@@ -37,6 +37,11 @@ public:
 	int m_nOldTickCount = 0;
 	float m_flOldCurrentTime = 0.f;
 	float m_flOldFrameTime = 0.f;
+
+	Vec3 m_vOrigin = {};
+	Vec3 m_vVelocity = {};
+	Vec3 m_vDirection = {};
+	Vec3 m_vAngles = {};
 };
 
 ADD_FEATURE(CEnginePrediction, EnginePrediction);

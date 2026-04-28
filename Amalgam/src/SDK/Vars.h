@@ -334,6 +334,8 @@ NAMESPACE_BEGIN(Vars)
 			CVar(DrawHardcoded, "DrawHardcoded", false, NOSAVE | DEBUGVAR);
 			CVar(DrawSplashPoints, "DrawSplashPoints", false, NOSAVE | DEBUGVAR);
 
+			CVar(Roll, "Roll", false);
+
 			CVar(GroundSamples, "Samples", 33, NOSAVE | DEBUGVAR, 3, 66);
 			CVar(GroundStraightFuzzyValue, "Straight fuzzy value", 100.f, NOSAVE | DEBUGVAR | SLIDER_PRECISION, 0.f, 500.f, 25.f);
 			CVar(GroundLowMinimumSamples, "Low min samples", 16, NOSAVE | DEBUGVAR, 3, 66);

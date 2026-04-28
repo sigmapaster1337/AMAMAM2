@@ -2118,6 +2118,23 @@ bool CAimbotProjectile::Aim(const Vec3& vCurAngle, const Vec3& vToAngle, Vec3& v
 	}
 	*/
 
+	if (Vars::Aimbot::Projectile::Roll.Value)
+	{
+		static float currentAngle = 0.f;
+
+
+		vOut = vToAngle;
+		vOut.z = currentAngle;
+
+		currentAngle += 3600.f * I::GlobalVars->interval_per_tick;
+		if (currentAngle >= 360.f)
+		{
+			currentAngle -= 360.f;
+		}
+
+		return true;
+	}
+
 	bool bReturn = false;
 	switch (iMethod)
 	{

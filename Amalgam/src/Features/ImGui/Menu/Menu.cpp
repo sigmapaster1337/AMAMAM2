@@ -1165,6 +1165,7 @@ void CMenu::MenuVisuals(int iTab)
 					FToggle(Vars::Visuals::Removals::Ragdolls, FToggleEnum::Left);
 					FToggle(Vars::Visuals::Removals::Gibs, FToggleEnum::Right);
 					FToggle(Vars::Visuals::Removals::MOTD, FToggleEnum::Left);
+					FToggle(Vars::Visuals::Removals::FreezeCam, FToggleEnum::Right);
 				} EndSection();
 				if (Section("Viewmodel", 8))
 				{

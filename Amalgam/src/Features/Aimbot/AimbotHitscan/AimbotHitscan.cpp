@@ -256,7 +256,7 @@ int CAimbotHitscan::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBase* 
 	}
 	else
 	{
-		F::Backtrack.m_tRecord = { tTarget.m_pEntity->m_flSimulationTime(), tTarget.m_pEntity->m_vecOrigin(), Vec3(), Vec3() };
+		F::Backtrack.m_tRecord = { tTarget.m_pEntity->m_flSimulationTime(), I::GlobalVars->curtime, tTarget.m_pEntity->m_vecOrigin(), Vec3(), Vec3() };
 		if (!tTarget.m_pEntity->SetupBones(F::Backtrack.m_tRecord.m_aBones, MAXSTUDIOBONES, BONE_USED_BY_ANYTHING, tTarget.m_pEntity->m_flSimulationTime()))
 			return false;
 

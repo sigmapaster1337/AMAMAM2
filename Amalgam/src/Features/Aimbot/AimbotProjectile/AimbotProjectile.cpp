@@ -523,6 +523,13 @@ float CAimbotProjectile::GetSplashRadius(CTFWeaponBase* pWeapon, CTFPlayer* pPla
 	if (!flRadius)
 		return 0.f;
 
+		switch (pWeapon->m_iItemDefinitionIndex())
+		{
+		case 237:  // Rocket Jumper
+		case 265:  // Sticky Jumper
+			return 0.f;
+		}
+
 	flRadius = SDK::AttribHookValue(flRadius, "mult_explosion_radius", pWeapon);
 	switch (pWeapon->GetWeaponID())
 	{

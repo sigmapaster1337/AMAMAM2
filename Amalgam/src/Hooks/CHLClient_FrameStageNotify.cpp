@@ -56,6 +56,12 @@ MAKE_HOOK(CHLClient_FrameStageNotify, U::Memory.GetVirtual(I::Client, 35), void,
 		F::CheaterDetection.Run();
 		F::Spectate.NetUpdateEnd(pLocal);
 
+		if (Vars::Visuals::Removals::FreezeCam.Value && pLocal && pLocal->m_iObserverMode() == OBS_MODE_FREEZECAM)
+		{
+			pLocal->m_hObserverTarget() = EHANDLE();
+			I::EngineClient->ClientCmd_Unrestricted("snd_soundmixer Default_Mix");
+		}
+
 		F::Visuals.Modulate();
 		F::Visuals.DrawHitboxes(1);
 		break;

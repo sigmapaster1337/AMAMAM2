@@ -571,6 +571,7 @@ NAMESPACE_BEGIN(Vars)
 			CVar(Ragdolls, VA_LIST("Ragdolls", "Remove ragdoll"), false, VISUAL);
 			CVar(Gibs, VA_LIST("Gibs", "Remove gibs"), false, VISUAL);
 			CVar(MOTD, VA_LIST("MOTD", "Remove MOTD"), false, VISUAL);
+			CVar(FreezeCam, "Freezecam", false, VISUAL);
 		NAMESPACE_END(Removals)
 
 		NAMESPACE_BEGIN(Effects)

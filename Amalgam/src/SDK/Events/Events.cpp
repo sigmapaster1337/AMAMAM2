@@ -65,7 +65,7 @@ void CEventListener::FireGameEvent(IGameEvent* pEvent)
 		if (I::EngineClient->GetPlayerForUserID(pEvent->GetInt("userid")) != I::EngineClient->GetLocalPlayer())
 			return;
 
-		F::Backtrack.SetLerp();
+		F::Backtrack.SetLerp(pEvent);
 		return;
 	}
 	case FNV1A::Hash32Const("revive_player_notify"):

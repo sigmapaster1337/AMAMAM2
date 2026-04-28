@@ -981,6 +981,31 @@ void CVisuals::Store()
 			tProjectile.m_iFlags = pGroup->m_iTrajectory;
 			tProjectile.m_flRadius = F::AimbotProjectile.GetSplashRadius(pEntity, tProjInfo.m_pWeapon, tProjInfo.m_pOwner);
 
+			if (tProjInfo.m_pWeapon) {
+				// Filter out training weapons - don't show spheres
+				if (tProjInfo.m_pWeapon->m_iItemDefinitionIndex() == 237 ||  // Rocket Jumper
+					tProjInfo.m_pWeapon->m_iItemDefinitionIndex() == 265) {  // Sticky Jumper
+					tProjectile.m_flRadius = 0.f;  // Set to 0 to prevent rendering
+				}
+			}
+
+			// Add sphere to grounded pipes
+			if (pEntity->GetClassID() == ETFClassID::CTFGrenadePipebombProjectile) {
+				auto pPipe = pEntity->As<CTFGrenadePipebombProjectile>();
+
+				// Only show sphere for regular pipes (not stickies) that have touched ground
+				if (!pPipe->HasStickyEffects() && pPipe->m_bTouched()) {
+					// Check if velocity is very low (essentially stationary)
+					if (pPipe->m_vecVelocity().Length() < 10.f) {
+						// Force sphere rendering for stationary pipes
+						if (!tProjectile.m_flRadius) {
+							tProjectile.m_flRadius = 146.f; // Default pipe splash radius
+						}
+						tProjectile.m_iFlags |= (TrajectoryEnum::Radius | TrajectoryEnum::Sphere);
+					}
+				}
+			}
+
 			if (tProjInfo.m_flVelocity < 1.5f)
 			{
 				if (!tProjInfo.m_flVelocity)

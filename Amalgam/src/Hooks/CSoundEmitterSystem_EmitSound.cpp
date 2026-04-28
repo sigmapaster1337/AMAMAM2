@@ -94,14 +94,28 @@ const static std::vector<const char*> s_vFootsteps = { "footstep", "flesh_impact
 const static std::vector<const char*> s_vNoisemaker = { "items\\halloween", "items\\football_manager", "items\\japan_fundraiser", "items\\samurai\\tf_samurai_noisemaker", "items\\summer", "misc\\happy_birthday_tf", "misc\\jingle_bells" };
 const static std::vector<const char*> s_vFryingPan = { "pan_" };
 const static std::vector<const char*> s_vWater = { "ambient_mp3\\water\\water_splash", "slosh", "wade" };
+const static std::vector<std::string> s_vFreezeCam = { "misc\\freeze_cam" };
 
 static inline bool ShouldBlockSound(const char* pSound)
 {
-	if (!Vars::Misc::Sound::Block.Value || !pSound)
+	if (!pSound)
 		return false;
 
 	std::string sSound = pSound;
 	std::transform(sSound.begin(), sSound.end(), sSound.begin(), ::tolower);
+
+	if (Vars::Visuals::Removals::FreezeCam.Value)
+	{
+		for (auto& sNoise : s_vFreezeCam)
+		{
+			if (sSound.find(sNoise) != std::string::npos)
+				return true;
+		}
+	}
+
+	if (!Vars::Misc::Sound::Block.Value)
+		return false;
+
 	auto fCheckSound = [&](const std::vector<const char*>& vSounds, int iFlag = -1)
 	{
 		if (Vars::Misc::Sound::Block.Value & iFlag)

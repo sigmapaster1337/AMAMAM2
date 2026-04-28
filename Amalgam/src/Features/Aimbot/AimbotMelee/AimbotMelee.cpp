@@ -169,11 +169,15 @@ void CAimbotMelee::UpdateInfo(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCm
 					F::Ticks.AntiWarp(pLocal, pCmd->viewangles.y, tMoveStorage.m_MoveData.m_flForwardMove, tMoveStorage.m_MoveData.m_flSideMove, iMax - i - 1);
 
 				F::MoveSim.RunTick(tMoveStorage);
-				m_mRecordMap[I::EngineClient->GetLocalPlayer()].emplace_front(
-					pLocal->m_flSimulationTime() + TICKS_TO_TIME(i + 1),
-					tMoveStorage.m_MoveData.m_vecAbsOrigin,
-					pLocal->m_vecMins(), pLocal->m_vecMaxs()
-				);
+				{
+					auto& vLocalRecords = m_mRecordMap[I::EngineClient->GetLocalPlayer()];
+					vLocalRecords.emplace_front();
+					auto& tRecord = vLocalRecords.front();
+					tRecord.m_flSimTime = pLocal->m_flSimulationTime() + TICKS_TO_TIME(i + 1);
+					tRecord.m_vOrigin = tMoveStorage.m_MoveData.m_vecAbsOrigin;
+					tRecord.m_vMins = pLocal->m_vecMins();
+					tRecord.m_vMaxs = pLocal->m_vecMaxs();
+				}
 			}
 
 			if (i < iSimTicks - m_iDoubletapTicks)
@@ -185,11 +189,15 @@ void CAimbotMelee::UpdateInfo(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUserCm
 						continue;
 
 					F::MoveSim.RunTick(tMoveStorage);
-					m_mRecordMap[tTarget.m_pEntity->entindex()].emplace_front(
-						!Vars::Aimbot::Melee::SwingPredictLag.Value || tMoveStorage.m_bPredictNetworked ? tTarget.m_pEntity->m_flSimulationTime() + TICKS_TO_TIME(i + 1) : 0.f,
-						Vars::Aimbot::Melee::SwingPredictLag.Value ? tMoveStorage.m_vPredictedOrigin : tMoveStorage.m_MoveData.m_vecAbsOrigin,
-						tTarget.m_pEntity->m_vecMins(), tTarget.m_pEntity->m_vecMaxs()
-					);
+					{
+						auto& vTargetRecords = m_mRecordMap[tTarget.m_pEntity->entindex()];
+						vTargetRecords.emplace_front();
+						auto& tRecord = vTargetRecords.front();
+						tRecord.m_flSimTime = !Vars::Aimbot::Melee::SwingPredictLag.Value || tMoveStorage.m_bPredictNetworked ? tTarget.m_pEntity->m_flSimulationTime() + TICKS_TO_TIME(i + 1) : 0.f;
+						tRecord.m_vOrigin = Vars::Aimbot::Melee::SwingPredictLag.Value ? tMoveStorage.m_vPredictedOrigin : tMoveStorage.m_MoveData.m_vecAbsOrigin;
+						tRecord.m_vMins = tTarget.m_pEntity->m_vecMins();
+						tRecord.m_vMaxs = tTarget.m_pEntity->m_vecMaxs();
+					}
 				}
 			}
 		}
@@ -348,7 +356,7 @@ int CAimbotMelee::CanHit(Target_t& tTarget, CTFPlayer* pLocal, CTFWeaponBase* pW
 	}
 	else
 	{
-		F::Backtrack.m_tRecord = { tTarget.m_pEntity->m_flSimulationTime(), tTarget.m_pEntity->m_vecOrigin(), tTarget.m_pEntity->m_vecMins(), tTarget.m_pEntity->m_vecMaxs() };
+		F::Backtrack.m_tRecord = { tTarget.m_pEntity->m_flSimulationTime(), I::GlobalVars->curtime, tTarget.m_pEntity->m_vecOrigin(), tTarget.m_pEntity->m_vecMins(), tTarget.m_pEntity->m_vecMaxs() };
 		if (!tTarget.m_pEntity->SetupBones(F::Backtrack.m_tRecord.m_aBones, MAXSTUDIOBONES, BONE_USED_BY_ANYTHING, tTarget.m_pEntity->m_flSimulationTime()))
 			return false;
 

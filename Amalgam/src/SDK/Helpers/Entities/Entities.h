@@ -60,6 +60,8 @@ private:
 	uint32_t m_uAccountID;
 	int m_iPartyCount = 0;
 
+	void PollActiveSounds();
+
 public:
 	void Store();
 	void Clear(bool bShutdown = false);

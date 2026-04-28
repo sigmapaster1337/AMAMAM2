@@ -134,6 +134,15 @@ MAKE_HOOK(CSoundEmitterSystem_EmitSound, S::CSoundEmitterSystem_EmitSound(), voi
 	void* rcx, IRecipientFilter& filter, int entindex, const EmitSound_t& ep)
 {
 	DEBUG_RETURN(CSoundEmitterSystem_EmitSound, rcx, filter, entindex, ep);
+	
+	// Track dormancy via sound positions
+	if (ep.m_pOrigin && entindex > 0 && entindex != I::EngineClient->GetLocalPlayer())
+	{
+		StartSoundParams_t params;
+		params.soundsource = entindex;
+		params.origin = *ep.m_pOrigin;
+		H::Entities.ManualNetwork(params);
+	}
 
 	if (ShouldBlockSound(ep.m_pSoundName))
 		return;

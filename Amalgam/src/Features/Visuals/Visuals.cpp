@@ -784,6 +784,14 @@ void CVisuals::ThirdPerson(CTFPlayer* pLocal, CViewSetup* pView)
 	}
 }
 
+void CVisuals::RegisterPendingHit(int iEntIndex, matrix3x4* aBones, int nAimedHitbox)
+{
+	auto& data = m_mPendingHits[iEntIndex];
+	memcpy(data.m_aBones, aBones, sizeof(matrix3x4) * MAXSTUDIOBONES);
+	data.m_nAimedHitbox = nAimedHitbox;
+	data.m_flTime = I::GlobalVars->curtime;
+}
+
 void CVisuals::Event(IGameEvent* pEvent, uint32_t uHash)
 {
 	switch (uHash)
@@ -811,12 +819,23 @@ void CVisuals::Event(IGameEvent* pEvent, uint32_t uHash)
 			if (!bBones)
 				return;
 
-			auto aBones = F::Backtrack.GetBones(pEntity);
-			if (!aBones)
+			auto it = m_mPendingHits.find(iVictim);
+			if (it == m_mPendingHits.end())
 				return;
 
-			auto vBoxes = GetHitboxes(aBones, pEntity);
+			auto& data = it->second;
+
+			// Discard stale entries (e.g. a shot that never connected)
+			if (I::GlobalVars->curtime - data.m_flTime > 2.f)
+			{
+				m_mPendingHits.erase(it);
+				break;
+			}
+
+			auto vBoxes = GetHitboxes(data.m_aBones, pEntity, {}, data.m_nAimedHitbox);
 			G::BoxStorage.insert(G::BoxStorage.end(), vBoxes.begin(), vBoxes.end());
+
+			m_mPendingHits.erase(it); // consume – one player_hurt per shot
 
 			return;
 		}
@@ -911,6 +930,7 @@ void CVisuals::Event(IGameEvent* pEvent, uint32_t uHash)
 	case FNV1A::Hash32Const("teamplay_round_start"):
 	{
 		m_vPickups.clear();
+		m_mPendingHits.clear();
 
 		G::LineStorage.clear();
 		G::BoxStorage.clear();

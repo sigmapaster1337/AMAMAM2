@@ -121,6 +121,14 @@ bool CAutoDetonate::CheckEntities(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CUs
 		if (Vars::Aimbot::Projectile::AutoDetonate.Value & Vars::Aimbot::Projectile::AutoDetonateEnum::IgnoreInvisible && pEntity->IsPlayer() && pEntity->As<CTFPlayer>()->IsInvisible(Vars::Aimbot::General::IgnoreInvisible.Value / 100.f))
 			continue;
 
+		if ((Vars::Aimbot::Projectile::AutoDetonate.Value && Vars::Aimbot::General::OnlyPriority.Value) &&
+			pEntity->IsPlayer())
+		{
+			int iPriority = F::AimbotGlobal.GetPriority(pEntity->entindex());
+			if (iPriority <= 0)
+				continue;
+		}
+
 		if (CheckEntity(pEntity, pLocal, pWeapon, pCmd, pProjectile, flRadius, vOrigin))
 			return true;
 	}

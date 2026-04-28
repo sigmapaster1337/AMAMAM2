@@ -727,6 +727,17 @@ static inline void DrawVisuals(CTFPlayer* pLocal, Target_t& tTarget, int nWeapon
 				G::BoxStorage.insert(G::BoxStorage.end(), vBoxes.begin(), vBoxes.end());
 			}
 		}
+		// Register shoot-time bones for the on-hit hitbox drawing feature.
+		// Event() will consume this when player_hurt fires.
+		if (tTarget.m_iTargetType == TargetEnum::Player
+			&& tTarget.m_pRecord
+			&& tTarget.m_pRecord->m_aBones)
+		{
+			F::Visuals.RegisterPendingHit(
+				tTarget.m_pEntity->entindex(),
+				tTarget.m_pRecord->m_aBones,
+				tTarget.m_nAimedHitbox);
+		}
 	}
 }
 

@@ -37,6 +37,7 @@ struct PlayerCache_t : BuildingCache_t
 	bool m_bBones = false;
 	int m_iClassIcon = 0;
 	CHudTexture* m_pWeaponIcon = nullptr;
+	std::vector<std::pair<std::string, Color_t>> m_vPriorityText = {};
 };
 
 class CESP

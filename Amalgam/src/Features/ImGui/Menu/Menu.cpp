@@ -1378,7 +1378,7 @@ void CMenu::MenuMisc(int iTab)
 				if (Section("Queueing"))
 				{
 					FDropdown(Vars::Misc::Queueing::ForceRegions);
-					FToggle(Vars::Misc::Queueing::ExtendQueue, FToggleEnum::Left);
+					FToggle(Vars::Misc::Queueing::FreezeQueue, FToggleEnum::Left);
 					FToggle(Vars::Misc::Queueing::AutoCasualQueue, FToggleEnum::Right);
 				} EndSection();
 				if (Section("Sound"))

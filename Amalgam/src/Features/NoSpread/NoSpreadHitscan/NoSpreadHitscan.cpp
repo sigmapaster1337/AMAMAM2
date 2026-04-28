@@ -51,17 +51,23 @@ float CNoSpreadHitscan::CalcMantissaStep(float flV)
 
 std::string CNoSpreadHitscan::GetFormat(int iServerTime)
 {
-	int iDays = iServerTime / 86400;
-	int iHours = iServerTime / 3600 % 24;
-	int iMinutes = iServerTime / 60 % 60;
+	int iHours = iServerTime / 3600;
+	int iMinutes = (iServerTime % 3600) / 60;
 	int iSeconds = iServerTime % 60;
 
-	if (iDays)
-		return std::format("{} d {} h", iDays, iHours);
-	else if (iHours)
+	if (iHours > 0)
+	{
 		return std::format("{} h {} min", iHours, iMinutes);
-	else
+	}
+	else if (iMinutes > 0)
+	{
 		return std::format("{} min {} sec", iMinutes, iSeconds);
+	}
+	else
+	{
+		// Show only seconds when minutes are 0
+		return std::format("0 min {} sec", iSeconds);
+	}
 }
 
 void CNoSpreadHitscan::AskForPlayerPerf()

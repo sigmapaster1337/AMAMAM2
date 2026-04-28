@@ -21,6 +21,13 @@ struct Sightline_t
 	bool m_bZBuffer = false;
 };
 
+struct PendingHitData_t
+{
+	matrix3x4 m_aBones[MAXSTUDIOBONES] = {};
+	int m_nAimedHitbox = -1;
+	float m_flTime = 0.f; // curtime when registered, for stale-entry expiry
+};
+
 struct PickupData_t
 {
 	int m_iType = 0;
@@ -44,6 +51,8 @@ private:
 	std::unordered_map<CBaseEntity*, Projectile_t> m_mProjectiles = {};
 	std::vector<Sightline_t> m_vSightLines = {};
 	std::vector<PickupData_t> m_vPickups = {};
+
+	std::unordered_map<int, PendingHitData_t> m_mPendingHits = {};
 
 	std::unordered_map<int, Vec3> m_mItemPositions;
 
@@ -81,6 +90,8 @@ public:
 	void RestoreWorldModulation();
 
 	void CreateMove(CTFPlayer* pLocal, CTFWeaponBase* pWeapon);
+
+	void RegisterPendingHit(int iEntIndex, matrix3x4* aBones, int nAimedHitbox);
 };
 
 ADD_FEATURE(CVisuals, Visuals);

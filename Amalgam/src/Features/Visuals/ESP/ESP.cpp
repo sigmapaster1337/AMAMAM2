@@ -331,39 +331,34 @@ static inline void StorePlayer(CTFPlayer* pPlayer, CTFPlayer* pLocal, Group_t* p
 
 			if (pGroup->m_iESP & ESPEnum::Priority)
 			{
-				if (auto pTag = F::PlayerUtils.GetSignificantTag(uAccountID, 1))
-					tCache.m_vText.emplace_back(ALIGN_BOTTOM, pTag->m_sName, pTag->m_tColor, Color_t(0, 0, 0, 255));
-			}
+				std::vector<std::tuple<std::string, Color_t, int>> vPriorityTags = {};
 
-			if (pGroup->m_iESP & ESPEnum::Labels)
-			{
-				std::vector<std::tuple<std::string, Color_t, int>> vTags = {};
+				// Get all priority tags (non-label tags) from player
 				for (auto& iID : F::PlayerUtils.GetPlayerTags(uAccountID))
 				{
 					auto pTag = F::PlayerUtils.GetTag(iID);
-					if (pTag && pTag->m_bLabel)
-						vTags.emplace_back(pTag->m_sName, pTag->m_tColor, pTag->m_iPriority);
+					if (pTag && !pTag->m_bLabel)
+						vPriorityTags.emplace_back(pTag->m_sName, pTag->m_tColor, pTag->m_iPriority);
 				}
+				// Add default priority tags (Friend, Party, F2P) if they're not labels
 				if (H::Entities.IsFriend(uAccountID))
 				{
 					auto pTag = &F::PlayerUtils.m_vTags[F::PlayerUtils.TagToIndex(FRIEND_TAG)];
-					if (pTag->m_bLabel)
-						vTags.emplace_back(pTag->m_sName, pTag->m_tColor, pTag->m_iPriority);
+					if (!pTag->m_bLabel)
+						vPriorityTags.emplace_back(pTag->m_sName, pTag->m_tColor, pTag->m_iPriority);
 				}
 				if (auto iParty = H::Entities.GetParty(uAccountID))
 				{
 					auto pTag = &F::PlayerUtils.m_vTags[F::PlayerUtils.TagToIndex(PARTY_TAG)];
-					if (int iPartyCount = H::Entities.GetPartyCount() + 1; pTag->m_bLabel)
+					if (int iPartyCount = H::Entities.GetPartyCount() + 1; !pTag->m_bLabel)
 					{
 						if (iParty == 1)
 						{
-							// Always show local party
-							vTags.emplace_back(pTag->m_sName, pTag->m_tColor, pTag->m_iPriority);
+							vPriorityTags.emplace_back(pTag->m_sName, pTag->m_tColor, pTag->m_iPriority);
 						}
 						else if (Vars::Colors::PartyESP.Value)
 						{
-							// Numbered parties (toggle)
-							vTags.emplace_back(
+							vPriorityTags.emplace_back(
 								std::format("{}: {}", pTag->m_sName, iParty - 1),
 								pTag->m_tColor.HueShift((iParty - 1) * 360.f / iPartyCount),
 								pTag->m_iPriority
@@ -374,23 +369,21 @@ static inline void StorePlayer(CTFPlayer* pPlayer, CTFPlayer* pLocal, Group_t* p
 				if (H::Entities.IsF2P(uAccountID))
 				{
 					auto pTag = &F::PlayerUtils.m_vTags[F::PlayerUtils.TagToIndex(F2P_TAG)];
-					if (pTag->m_bLabel)
-						vTags.emplace_back(pTag->m_sName, pTag->m_tColor, pTag->m_iPriority);
+					if (!pTag->m_bLabel)
+						vPriorityTags.emplace_back(pTag->m_sName, pTag->m_tColor, pTag->m_iPriority);
 				}
 
-				if (!vTags.empty())
+				// Sort by priority ascending (lower priority number first)
+				if (!vPriorityTags.empty())
 				{
-					std::sort(vTags.begin(), vTags.end(), [&](const auto a, const auto b) -> bool
+					std::sort(vPriorityTags.begin(), vPriorityTags.end(), [&](const auto a, const auto b) -> bool
 					{
-						// sort by priority if unequal
-						if (std::get<2>(a) != std::get<2>(b))
-							return std::get<2>(a) > std::get<2>(b);
-
-						return std::get<0>(a) < std::get<0>(b);
+							return std::get<2>(a) < std::get<2>(b);
 					});
 
-					for (auto& [sName, tColor, _] : vTags)
-						tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, sName, tColor, tColor.IsColorDark() ? Color_t(255, 255, 255) : Color_t(0, 0, 0));
+					for (auto& [sName, tColor, _] : vPriorityTags)
+						// Store priority tags in a separate vector to be drawn after weapon info
+						tCache.m_vPriorityText.emplace_back(sName, tColor);
 				}
 			}
 		}
@@ -1229,7 +1222,33 @@ void CESP::DrawPlayers()
 		{
 			float flW = tCache.m_pWeaponIcon->Width(), flH = tCache.m_pWeaponIcon->Height();
 			float flScale = H::Draw.Scale(std::min((w + 40) / 2.f, 80.f) / std::max(flW, flH * 2));
-			H::Draw.DrawHudTexture(m - flW / 2.f * flScale, b + bOffset, flScale, tCache.m_pWeaponIcon, Vars::Menu::Theme::Active.Value);
+
+			// Calculate icon position
+			float flIconX = m - flW / 2.f * flScale;
+			float flIconY = b + bOffset;
+
+			// Draw the icon
+			H::Draw.DrawHudTexture(flIconX, flIconY, flScale, tCache.m_pWeaponIcon, Vars::Menu::Theme::Active.Value);
+
+			// Add fixed spacing after icon (using a fixed pixel value instead of scaling with icon)
+			float flSpacingAfterIcon = H::Draw.Scale(8); // Fixed 8 pixels of spacing after icon
+			float flTextY = flIconY + (flH * flScale) + flSpacingAfterIcon;
+
+			// Draw priority texts under weapon icon with fixed spacing between them
+			for (auto& [sText, tColor] : tCache.m_vPriorityText)
+			{
+				H::Draw.StringOutlined(fFont, m, flTextY, tColor, { 0, 0, 0, 255 }, ALIGN_TOP, sText.c_str());
+				flTextY += nTall; // Use the same line height as other ESP text
+			}
+		}
+		else if (!tCache.m_vPriorityText.empty()) // If no weapon icon, draw priority texts normally
+		{
+			float flTextY = b + bOffset;
+			for (auto& [sText, tColor] : tCache.m_vPriorityText)
+			{
+				H::Draw.StringOutlined(fFont, m, flTextY, tColor, { 0, 0, 0, 255 }, ALIGN_TOP, sText.c_str());
+				flTextY += nTall;
+			}
 		}
 	}
 
@@ -1389,7 +1408,7 @@ bool CESP::GetDrawBounds(CBaseEntity* pEntity, float& x, float& y, float& w, flo
 	Vec3 vOrigin = pEntity->GetAbsOrigin();
 	matrix3x4 mTransform = { { 1, 0, 0, vOrigin.x }, { 0, 1, 0, vOrigin.y }, { 0, 0, 1, vOrigin.z } };
 	//if (pEntity->entindex() == I::EngineClient->GetLocalPlayer())
-		Math::AngleMatrix({ 0.f, I::EngineClient->GetViewAngles().y, 0.f }, mTransform, false);
+	Math::AngleMatrix({ 0.f, I::EngineClient->GetViewAngles().y, 0.f }, mTransform, false);
 
 	float flLeft, flRight, flTop, flBottom;
 	if (!SDK::IsOnScreen(pEntity, mTransform, &flLeft, &flRight, &flTop, &flBottom, true))

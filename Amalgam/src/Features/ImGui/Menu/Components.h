@@ -214,16 +214,22 @@ namespace ImGui
 
 		pDrawList->AddRectFilled(vDrawPos, vDrawPos + vSize, uBackground, H::Draw.Scale(4));
 	}
-	inline void RenderBackground(ImU32 uBackground, ImU32 uBorder, float flInset = H::Draw.Scale())
+	inline void RenderBackground(ImU32 uBackground, ImU32 uBorder, float flInset = H::Draw.Scale(1))
 	{
 		ImVec2 vSize = GetWindowSize();
 		ImVec2 vDrawPos = GetDrawPos();
 		ImDrawList* pDrawList = GetWindowDrawList();
 
-		pDrawList->AddRectFilled(vDrawPos + ImVec2(flInset, flInset), vDrawPos + vSize - ImVec2(flInset, flInset), uBackground, H::Draw.Scale(3));
-		
-		flInset += H::Draw.Scale(0.5f) - 0.5f - H::Draw.Scale();
-		pDrawList->AddRect(vDrawPos + ImVec2(flInset, flInset), vDrawPos + vSize - ImVec2(flInset, flInset), uBorder, H::Draw.Scale(4), ImDrawFlags_None, H::Draw.Scale());
+		pDrawList->AddRectFilled(
+			{ vDrawPos.x + flInset, vDrawPos.y + flInset },
+			{ vDrawPos.x - flInset + vSize.x, vDrawPos.y - flInset + vSize.y },
+			uBackground, H::Draw.Scale(3) + flInset);
+
+		flInset = H::Draw.Scale(0.5f - 0.5f) - H::Draw.Scale(1);
+		pDrawList->AddRect(
+			{ vDrawPos.x + flInset, vDrawPos.y + flInset },
+			{ vDrawPos.x - flInset + vSize.x, vDrawPos.y - flInset + vSize.y },
+			uBorder, H::Draw.Scale(4), ImDrawFlags_None, H::Draw.Scale(1));
 	}
 	inline void RenderTwoToneBackground(float flSize, ImU32 uTitle, ImU32 uBackground, bool bHorizontal = false)
 	{
@@ -596,7 +602,7 @@ namespace ImGui
 
 	inline bool FBeginPopup(const char* sLabel, ImGuiWindowFlags iFlags = ImGuiWindowFlags_NoSavedSettings)
 	{
-		PushStyleColor(ImGuiCol_PopupBg, {});
+		PushStyleColor(ImGuiCol_PopupBg, 0);
 
 		bool bReturn = BeginPopup(sLabel, iFlags);
 
@@ -609,7 +615,7 @@ namespace ImGui
 
 	inline bool FBeginPopupModal(const char* sLabel, bool* pOpen = nullptr, ImGuiWindowFlags iFlags = ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar)
 	{
-		PushStyleColor(ImGuiCol_PopupBg, {});
+		PushStyleColor(ImGuiCol_PopupBg, 0);
 
 		bool bReturn = BeginPopupModal(sLabel, pOpen, iFlags);
 

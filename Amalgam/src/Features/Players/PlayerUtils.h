@@ -57,7 +57,7 @@ public:
 		{ "Cheater", { 255, 100, 100, 255 }, 1, false, true, true },
 		{ "Friend", { 100, 255, 100, 255 }, 0, true, false, true },
 		{ "Party", { 100, 100, 255, 255 }, 0, true, false, true },
-		{ "F2P", { 255, 255, 255, 255 }, 0, true, false, true }
+		{ "F2P", { 255, 255, 255, 255 }, 0, true, true, true }
 	};
 
 	std::vector<ListPlayer> m_vPlayerCache = {};

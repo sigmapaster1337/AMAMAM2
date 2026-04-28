@@ -354,17 +354,25 @@ static inline void StorePlayer(CTFPlayer* pPlayer, CTFPlayer* pLocal, Group_t* p
 					auto pTag = &F::PlayerUtils.m_vTags[F::PlayerUtils.TagToIndex(PARTY_TAG)];
 					if (int iPartyCount = H::Entities.GetPartyCount() + 1; pTag->m_bLabel)
 					{
-						if (!--iParty)
+						if (iParty == 1)
+						{
+							// Always show local party
 							vTags.emplace_back(pTag->m_sName, pTag->m_tColor, pTag->m_iPriority);
-						else
-							vTags.emplace_back(std::format("{}: {}", pTag->m_sName, iParty), pTag->m_tColor.HueShift(iParty * 360.f / iPartyCount), pTag->m_iPriority);
+						}
+						else if (Vars::Colors::PartyESP.Value)
+						{
+							// Numbered parties (toggle)
+							vTags.emplace_back(
+								std::format("{}: {}", pTag->m_sName, iParty - 1),
+								pTag->m_tColor.HueShift((iParty - 1) * 360.f / iPartyCount),
+								pTag->m_iPriority
+							);
+						}
 					}
 				}
 				if (H::Entities.IsF2P(uAccountID))
 				{
 					auto pTag = &F::PlayerUtils.m_vTags[F::PlayerUtils.TagToIndex(F2P_TAG)];
-					pTag->m_tColor = { 205, 197, 102, 255 };
-					pTag->m_bLabel = false;
 					if (pTag->m_bLabel)
 						vTags.emplace_back(pTag->m_sName, pTag->m_tColor, pTag->m_iPriority);
 				}
@@ -393,26 +401,27 @@ static inline void StorePlayer(CTFPlayer* pPlayer, CTFPlayer* pLocal, Group_t* p
 		tCache.m_flHealth = flHealth > flMaxHealth
 			? 1.f + std::clamp((flHealth - flMaxHealth) / (floorf(flMaxHealth / 10.f) * 5), 0.f, 1.f)
 			: std::clamp(flHealth / flMaxHealth, 0.f, 1.f);
-		// Custom health gradient: low (red) -> medium (yellow) -> full (green)
-		Color_t tColorLow = Color_t(159, 49, 43, 255);     // #9f312b
-		Color_t tColorMid = Color_t(183, 173, 56, 255);    // #b7ad38
-		Color_t tColorFull = Color_t(45, 172, 48, 255);    // #2dac30
+
+		Color_t tColor;
 
 		float flHealthClamped = std::clamp(tCache.m_flHealth, 0.f, 1.f);
-		Color_t tColor;
 
 		if (flHealthClamped < 0.5f)
 		{
-			// 0% - 50%: red -> yellow
-			tColor = tColorLow.Lerp(tColorMid, flHealthClamped * 2.f);
+			// 0% to 50%: Lerp from Bad to Mid
+			tColor = Vars::Colors::IndicatorBad.Value.Lerp(
+				Vars::Colors::IndicatorMid.Value,
+				flHealthClamped / 0.5f);
 		}
 		else
 		{
-			// 50% - 100%: yellow -> green
-			tColor = tColorMid.Lerp(tColorFull, (flHealthClamped - 0.5f) * 2.f);
+			// 50% to 100%: Lerp from Mid to Good
+			tColor = Vars::Colors::IndicatorMid.Value.Lerp(
+				Vars::Colors::IndicatorGood.Value,
+				(flHealthClamped - 0.5f) / 0.5f);
 		}
 
-		tCache.m_vBars.emplace_back(ALIGN_LEFT, tCache.m_flHealth, tColor, Color_t{ 255, 255, 255, 255 });
+		tCache.m_vBars.emplace_back(ALIGN_LEFT, tCache.m_flHealth, tColor, Vars::Colors::IndicatorMisc.Value);
 	}
 	if (pGroup->m_iESP & ESPEnum::HealthText)
 		tCache.m_vText.emplace_back(ALIGN_LEFT, std::format("{}", flHealth), Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value);
@@ -727,24 +736,7 @@ static inline void StoreBuilding(CBaseObject* pBuilding, CTFPlayer* pLocal, Grou
 			? 1.f + std::clamp((flHealth - flMaxHealth) / (floorf(flMaxHealth / 10.f) * 5), 0.f, 1.f)
 			: std::clamp(flHealth / flMaxHealth, 0.f, 1.f);
 
-		// Custom health gradient: low (red) -> medium (yellow) -> full (green)
-		Color_t tColorLow = Color_t(159, 49, 43, 255);     // #9f312b
-		Color_t tColorMid = Color_t(183, 173, 56, 255);    // #b7ad38
-		Color_t tColorFull = Color_t(45, 172, 48, 255);    // #2dac30
-
-		float flHealthClamped = std::clamp(tCache.m_flHealth, 0.f, 1.f);
-		Color_t tColor;
-
-		if (flHealthClamped < 0.5f)
-		{
-			// 0% - 50%: red -> yellow
-			tColor = tColorLow.Lerp(tColorMid, flHealthClamped * 2.f);
-		}
-		else
-		{
-			// 50% - 100%: yellow -> green
-			tColor = tColorMid.Lerp(tColorFull, (flHealthClamped - 0.5f) * 2.f);
-		}
+		Color_t tColor = Vars::Colors::IndicatorBad.Value.Lerp(Vars::Colors::IndicatorGood.Value, std::clamp(tCache.m_flHealth, 0.f, 1.f));
 		tCache.m_vBars.emplace_back(ALIGN_LEFT, tCache.m_flHealth, tColor, Vars::Colors::IndicatorMisc.Value);
 	}
 	if (pGroup->m_iESP & ESPEnum::HealthText)

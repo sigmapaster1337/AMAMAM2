@@ -203,14 +203,16 @@ NAMESPACE_BEGIN(Vars)
 		CVar(FOVCircle, "FOV circle color", Color_t(255, 255, 255, 100), VISUAL);
 		CVar(Local, "Local color", Color_t(255, 255, 255, 0), VISUAL);
 
-		CVar(IndicatorGood, "Indicator good", Color_t(0, 255, 100, 255), NOSAVE | DEBUGVAR);
-		CVar(IndicatorMid, "Indicator mid", Color_t(255, 200, 0, 255), NOSAVE | DEBUGVAR);
-		CVar(IndicatorBad, "Indicator bad", Color_t(255, 0, 0, 255), NOSAVE | DEBUGVAR);
-		CVar(IndicatorMisc, "Indicator misc", Color_t(75, 175, 255, 255), NOSAVE | DEBUGVAR);
-		CVar(IndicatorTextGood, "Indicator text good", Color_t(150, 255, 150, 255), NOSAVE | DEBUGVAR);
-		CVar(IndicatorTextMid, "Indicator text mid", Color_t(255, 200, 0, 255), NOSAVE | DEBUGVAR);
-		CVar(IndicatorTextBad, "Indicator text bad", Color_t(255, 150, 150, 255), NOSAVE | DEBUGVAR);
-		CVar(IndicatorTextMisc, "Indicator text misc", Color_t(100, 255, 255, 255), NOSAVE | DEBUGVAR);
+		CVar(IndicatorGood, "Healthbar full", Color_t(80, 200, 80, 255));
+		CVar(IndicatorMid, "Healthbar mid", Color_t(200, 200, 80, 255));
+		CVar(IndicatorBad, "Healthbar low", Color_t(200, 60, 60, 255));
+		CVar(IndicatorMisc, "Healthbar overheal", Color_t(75, 175, 255, 255));
+		CVar(IndicatorTextGood, "Indicator text good", Color_t(150, 255, 150, 255));
+		CVar(IndicatorTextMid, "Indicator text mid", Color_t(255, 200, 0, 255));
+		CVar(IndicatorTextBad, "Indicator text bad", Color_t(255, 150, 150, 255));
+		CVar(IndicatorTextMisc, "Indicator text misc", Color_t(100, 255, 255, 255));\
+
+		CVar(PartyESP, "Party info on ESP", false);
 
 		CVar(WorldModulation, VA_LIST("World modulation", "World modulation color"), Color_t(255, 255, 255, 255), VISUAL);
 		CVar(SkyModulation, VA_LIST("Sky modulation", "Sky modulation color"), Color_t(255, 255, 255, 255), VISUAL);

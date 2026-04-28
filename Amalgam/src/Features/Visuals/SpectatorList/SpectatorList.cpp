@@ -20,7 +20,7 @@ bool CSpectatorList::GetSpectators(CTFPlayer* pTarget)
 		if (pResource->m_bValid(n) && !pResource->IsFakePlayer(n)
 			&& pResource->m_iTeam(I::EngineClient->GetLocalPlayer()) != TEAM_SPECTATOR && pResource->m_iTeam(n) == TEAM_SPECTATOR)
 		{
-			m_vSpectators.emplace_back(F::PlayerUtils.GetPlayerName(n, pResource->GetName(n)), "possible", -1.f, false, n);
+			m_vSpectators.emplace_back(F::PlayerUtils.GetPlayerName(n, pResource->GetName(n)), "(possible)", -1.f, false, n);
 			continue;
 		}
 

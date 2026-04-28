@@ -424,7 +424,7 @@ void CTicks::Draw(CTFPlayer* pLocal)
 	int iSizeX = H::Draw.Scale(80, Scale_Round);
 	int iSizeY = H::Draw.Scale(8, Scale_Round);
 	int iPosX = dtPos.x - iSizeX / 2;
-	int iPosY = dtPos.y;
+	int iPosY = dtPos.y + 25;
 
 	H::Draw.StringOutlined(fFont, dtPos.x, iPosY - H::Draw.Scale(8, Scale_Round) - fFont.m_nTall,
 		Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value, ALIGN_TOP,

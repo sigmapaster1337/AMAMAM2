@@ -873,6 +873,13 @@ void CMenu::MenuVisuals(int iTab)
 					FColorPicker("Group color", &tGroup.m_tColor, FColorPickerEnum::Left);
 					FToggle("Tags override color", &tGroup.m_bTagsOverrideColor, FToggleEnum::Right);
 				} EndSection();
+				if (Section("Healthbar Colors", 8))
+				{
+					FColorPicker(Vars::Colors::IndicatorGood, FColorPickerEnum::Left);
+					FColorPicker(Vars::Colors::IndicatorMid, FColorPickerEnum::Left);
+					FColorPicker(Vars::Colors::IndicatorBad, FColorPickerEnum::Left);
+					FColorPicker(Vars::Colors::IndicatorMisc, FColorPickerEnum::Left);
+				} EndSection();
 				if (Section("Targets"))
 				{
 					FDropdown("Targets", &tGroup.m_iTargets, { "Players", "Buildings", "Projectiles", "Ragdolls", "Objective", "NPCs", "Health", "Ammo", "Money", "Powerups", "Spellbook", "Bombs", "Gargoyle", "##Divider", "Fake angle", "Viewmodel weapon", "Viewmodel hands" }, {}, FDropdownEnum::Multi);
@@ -951,6 +958,10 @@ void CMenu::MenuVisuals(int iTab)
 						FDropdown("Draw", &tGroup.m_iESP, vEntries, vValues, FDropdownEnum::Multi);
 					}
 					PopTransparent();
+				} EndSection();
+				if (Section("Party ESP", 8))
+				{
+					FToggle(Vars::Colors::PartyESP, FToggleEnum::Left);
 				} EndSection();
 				if (Section("Chams"))
 				{
@@ -3862,6 +3873,7 @@ void CMenu::DrawBinds()
 								if (pInt->Map.find(iBind) != pInt->Map.end())
 								{
 									int value = tBind.m_bActive ? pInt->Map[iBind] : pInt->Map[DEFAULT_BIND];
+									// For dropdowns, show the value name if available
 									if (!pInt->m_vValues.empty() && value >= 0 && value < pInt->m_vValues.size())
 										vAffected.push_back(pInt->m_vValues[value]);
 									else
@@ -3884,8 +3896,9 @@ void CMenu::DrawBinds()
 									vAffected.push_back(value);
 								}
 							}
+							// add more types as needed
 							else
-								continue;
+								continue; // unknown type, skip
 						}
 						if (vAffected.size() == 1)
 							sValue = vAffected[0];
@@ -3910,7 +3923,6 @@ void CMenu::DrawBinds()
 
 	float flNameWidth = 0, flInfoWidth = 0, flKeyWidth = 0, flValueWidth = 0;
 	PushFont(F::Render.FontSmall);
-	float flBindTextHeight = FCalcTextSize("Test").y;
 	for (auto& [sName, sInfo, sKey, sValue, iBind, tBind] : vInfo)
 	{
 		flNameWidth = std::max(flNameWidth, FCalcTextSize(sName).x);
@@ -3921,23 +3933,18 @@ void CMenu::DrawBinds()
 	PopFont();
 	flNameWidth += H::Draw.Scale(9), flInfoWidth += H::Draw.Scale(9), flKeyWidth += H::Draw.Scale(9), flValueWidth += H::Draw.Scale(9);
 
-	// Calculate title height with Arial font
-	PushFont(F::Render.FontRegular);
-	float flTitleHeight = FCalcTextSize("Binds").y;
-	PopFont();
-
 	float flWidth = flNameWidth + flInfoWidth + flKeyWidth + flValueWidth + (m_bIsOpen ? H::Draw.Scale(113) : H::Draw.Scale(14));
-	// Height: 12px top + title + 3px gap + 1px divider + 16px gap + (18px spacing for binds) + text height + 15px bottom
-	float flHeight = H::Draw.Scale(12) + flTitleHeight + H::Draw.Scale(3 + 1 + 16) + H::Draw.Scale(18 * (vInfo.size() - 1)) + flBindTextHeight + H::Draw.Scale(15);
-
+	float flHeight = H::Draw.Scale(18 * vInfo.size() + (Vars::Menu::BindWindowTitle.Value ? 42 : 12)) + 2;
 	SetNextWindowSize({ flWidth, flHeight });
 	PushStyleVar(ImGuiStyleVar_WindowMinSize, { H::Draw.Scale(40), H::Draw.Scale(40) });
 	if (Begin("Binds", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoFocusOnAppearing))
 	{
 		ImVec2 vWindowPos = GetWindowPos();
-		ImVec2 vDrawPos = GetDrawPos();
 
-		RenderBackground(F::Render.Background0);
+		if (Vars::Menu::BindWindowTitle.Value)
+			RenderBackground(F::Render.Background0, 1.f, 1.f);
+		else
+			RenderBackground(F::Render.Background0, 1.f, 1.f);
 
 		info.x = vWindowPos.x; info.y = vWindowPos.y; old = info;
 		if (m_bIsOpen)
@@ -3946,22 +3953,18 @@ void CMenu::DrawBinds()
 		int iListStart = 8;
 		if (Vars::Menu::BindWindowTitle.Value)
 		{
-			// Title "Binds" - 11px from left, 12px from top, Arial font
-			PushFont(F::Render.FontBinds);
-			SetCursorPos({ H::Draw.Scale(11), H::Draw.Scale(12) });
-			FText("Binds");
+			PushFont(F::Render.FontLarge);
+			SetCursorPos({ H::Draw.Scale(7), H::Draw.Scale(10) });
+			FText(" Binds");
 			PopFont();
 
-			// Divider line: 10px from left/right, 1px tall, 3px below title
-			float dividerY = H::Draw.Scale(12) + flTitleHeight + H::Draw.Scale(3);
-			GetWindowDrawList()->AddRectFilled(
-				{ vDrawPos.x + H::Draw.Scale(10), vDrawPos.y + dividerY },
-				{ vDrawPos.x + flWidth - H::Draw.Scale(10), vDrawPos.y + dividerY + H::Draw.Scale(1) },
-				ImGui::GetColorU32(F::Render.Accent.Value)
+			GetWindowDrawList()->AddLine(
+				{ vWindowPos.x + H::Draw.Scale(8), vWindowPos.y + H::Draw.Scale(30) - 1 },
+				{ vWindowPos.x + flWidth - H::Draw.Scale(8), vWindowPos.y + H::Draw.Scale(30) - 1 },
+				ImGui::GetColorU32(F::Render.Accent.Value),
+				1.0f
 			);
-
-			// List starts 16px below divider
-			iListStart = int(dividerY + H::Draw.Scale(1 + 16) - H::Draw.Scale(12));
+			iListStart = 36;
 		}
 
 		PushFont(F::Render.FontSmall);
@@ -3993,7 +3996,7 @@ void CMenu::DrawBinds()
 			PopStyleColor();
 
 			if (m_bIsOpen)
-			{
+			{	// buttons
 				SetCursorPos({ flWidth - H::Draw.Scale(26), H::Draw.Scale(iListStart - 2 + 18 * i) });
 				bool bDelete = IconButton(ICON_MD_DELETE, H::Draw.Scale(18));
 
@@ -4018,7 +4021,7 @@ void CMenu::DrawBinds()
 
 				if (bDelete)
 				{
-					if (U::KeyHandler.Down(VK_SHIFT))
+					if (U::KeyHandler.Down(VK_SHIFT)) // allow user to quickly remove binds
 						F::Binds.RemoveBind(iBind);
 					else
 						OpenPopup(std::format("Confirmation## DeleteBind{}", iBind).c_str());
@@ -4027,7 +4030,7 @@ void CMenu::DrawBinds()
 				{
 					FText(std::format("Do you really want to delete '{}'{}?", tBind.m_sName, F::Binds.HasChildren(iBind) ? " and all of its children" : "").c_str());
 
-					SetCursorPosY(GetCursorPosY() - 8);
+					SetCursorPosY(GetCursorPosY() - 8); // stupid and i don't know why this is needed here
 					if (FButton("Yes", FButtonEnum::Left))
 					{
 						F::Binds.RemoveBind(iBind);

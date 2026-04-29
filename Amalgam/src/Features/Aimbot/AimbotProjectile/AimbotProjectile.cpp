@@ -432,7 +432,7 @@ static inline std::vector<Target_t> GetTargets(CTFPlayer* pLocal, CTFWeaponBase*
 			if (flFOVTo > Vars::Aimbot::General::AimFOV.Value)
 				continue;
 
-			int iPriority = 0;
+			iPriority = 0;
 			if (bTeam)
 			{
 				int iOwner = pEntity->As<CBaseObject>()->m_hBuilder().GetEntryIndex();

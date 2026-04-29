@@ -71,7 +71,7 @@ void CChatTranslator::OnChat(int iIndex, const char* szText)
 	auto it = m_mLastMessages.find(iIndex);
 	if (it != m_mLastMessages.end())
 	{
-		if (it->second.sText == sOriginalText && flNow < it->second.flTime + 0.1f)
+		if (it->second.sText == sOriginalText && flNow < it->second.flTime + 0.5f)
 			return;
 	}
 	m_mLastMessages[iIndex] = { sOriginalText, flNow };
@@ -270,6 +270,14 @@ void CChatTranslator::Update()
 		}
 		else
 		{
+			// Skip if source language matches target language (no translation needed)
+			std::string sSrcLower = result.sSourceLang;
+			std::string sTgtLower = result.sTargetLang;
+			std::transform(sSrcLower.begin(), sSrcLower.end(), sSrcLower.begin(), ::tolower);
+			std::transform(sTgtLower.begin(), sTgtLower.end(), sTgtLower.begin(), ::tolower);
+			if (sSrcLower == sTgtLower)
+				continue;
+
 			std::string sLangTag;
 			if (!result.sSourceLang.empty())
 			{

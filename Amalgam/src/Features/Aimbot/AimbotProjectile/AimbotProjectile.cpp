@@ -416,6 +416,12 @@ static inline std::vector<Target_t> GetTargets(CTFPlayer* pLocal, CTFWeaponBase*
 			if (F::AimbotGlobal.ShouldIgnore(pEntity, pLocal, pWeapon))
 				continue;
 
+			int iPriority = 0;
+			if (auto pOwner = pEntity->As<CTFGrenadePipebombProjectile>()->m_hThrower().Get())
+				iPriority = F::AimbotGlobal.GetPriority(pOwner->entindex());
+			if (!F::AimbotGlobal.ShouldTargetPriority(iPriority))
+				continue;
+
 			bool bTeam = pEntity->m_iTeamNum() == pLocal->m_iTeamNum();
 			if (bTeam && (pEntity->As<CBaseObject>()->m_iHealth() >= pEntity->As<CBaseObject>()->m_iMaxHealth() || pEntity->As<CBaseObject>()->m_bBuilding()))
 				continue;
@@ -466,6 +472,9 @@ static inline std::vector<Target_t> GetTargets(CTFPlayer* pLocal, CTFWeaponBase*
 			for (auto pEntity : H::Entities.GetGroup(EntityEnum::WorldProjectile))
 			{
 				if (F::AimbotGlobal.ShouldIgnore(pEntity, pLocal, pWeapon))
+					continue;
+
+				if (!F::AimbotGlobal.ShouldTargetPriority(0))
 					continue;
 
 				Vec3 vPos = pEntity->GetCenter();

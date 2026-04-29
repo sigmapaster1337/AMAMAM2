@@ -626,6 +626,9 @@ void CAutoHeal::AutoUberSelf(CTFPlayer* pLocal, CWeaponMedigun* pWeapon, CUserCm
 	if (!Vars::Aimbot::Healing::AutoUberSelfEnabled.Value || pWeapon->m_flChargeLevel() < 1.f)
 		return;
 
+	if (pWeapon->m_iItemDefinitionIndex() == Medic_s_TheKritzkrieg || pWeapon->GetMedigunType() == MEDIGUN_RESIST)
+		return;
+
 	int iHealth = pLocal->m_iHealth();
 	int iMaxHealth = pLocal->GetMaxHealth();
 	int iThreshold = (iMaxHealth * Vars::Aimbot::Healing::AutoUberSelfHealth.Value) / 100;
@@ -637,6 +640,9 @@ void CAutoHeal::AutoUberSelf(CTFPlayer* pLocal, CWeaponMedigun* pWeapon, CUserCm
 void CAutoHeal::AutoUberTarget(CTFPlayer* pLocal, CWeaponMedigun* pWeapon, CUserCmd* pCmd)
 {
 	if (!Vars::Aimbot::Healing::AutoUberTargetEnabled.Value || pWeapon->m_flChargeLevel() < 1.f)
+		return;
+
+	if (pWeapon->m_iItemDefinitionIndex() == Medic_s_TheKritzkrieg || pWeapon->GetMedigunType() == MEDIGUN_RESIST)
 		return;
 
 	auto pTarget = pWeapon->m_hHealingTarget().Get()->As<CTFPlayer>();

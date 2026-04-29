@@ -10,7 +10,7 @@ namespace BindEnum
 	//Enum(ItemType, First, Second, Third, Fourth, Fifth, Sixth, Seventh, Eighth, Ninth)
 	Enum(Misc, Spectated, SpectatedFirst, SpectatedThird, Zoomed, Aiming)
 }
-Enum(BindVisibility, Always, WhileActive, Hidden)
+Enum(BindVisibility, WhileActive, Hidden)
 
 struct Bind_t
 {
@@ -20,7 +20,7 @@ struct Bind_t
 	int m_iKey = 0;
 
 	bool m_bEnabled = true;
-	int m_iVisibility = BindVisibilityEnum::Always;
+	int m_iVisibility = BindVisibilityEnum::WhileActive;
 	bool m_bNot = false;
 	bool m_bActive = false;
 	KeyStorage m_tKeyStorage = {};

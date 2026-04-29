@@ -212,7 +212,7 @@ namespace ImGui
 		ImVec2 vDrawPos = GetDrawPos();
 		ImDrawList* pDrawList = GetWindowDrawList();
 
-		pDrawList->AddRectFilled(vDrawPos, vDrawPos + vSize, uBackground, H::Draw.Scale(4));
+		pDrawList->AddRectFilled({ vDrawPos.x, vDrawPos.y }, { vDrawPos.x + vSize.x, vDrawPos.y + vSize.y }, GetColorU32(uBackground), H::Draw.Scale(4));
 	}
 	inline void RenderBackground(ImU32 uBackground, ImU32 uBorder, float flInset = H::Draw.Scale(1))
 	{
@@ -223,13 +223,13 @@ namespace ImGui
 		pDrawList->AddRectFilled(
 			{ vDrawPos.x + flInset, vDrawPos.y + flInset },
 			{ vDrawPos.x - flInset + vSize.x, vDrawPos.y - flInset + vSize.y },
-			uBackground, H::Draw.Scale(3) + flInset);
+			GetColorU32(uBackground), H::Draw.Scale(3) + flInset);
 
 		flInset = H::Draw.Scale(0.5f - 0.5f) - H::Draw.Scale(1);
 		pDrawList->AddRect(
 			{ vDrawPos.x + flInset, vDrawPos.y + flInset },
 			{ vDrawPos.x - flInset + vSize.x, vDrawPos.y - flInset + vSize.y },
-			uBorder, H::Draw.Scale(4), ImDrawFlags_None, H::Draw.Scale(1));
+			GetColorU32(uBorder), H::Draw.Scale(4), ImDrawFlags_None, H::Draw.Scale(1));
 	}
 	inline void RenderTwoToneBackground(float flSize, ImU32 uTitle, ImU32 uBackground, bool bHorizontal = false)
 	{
@@ -239,13 +239,13 @@ namespace ImGui
 
 		if (!bHorizontal)
 		{
-			pDrawList->AddRectFilled(vDrawPos, vDrawPos + ImVec2(vSize.x, flSize), uTitle, H::Draw.Scale(4), ImDrawFlags_RoundCornersTopLeft | ImDrawFlags_RoundCornersTopRight);
-			pDrawList->AddRectFilled(vDrawPos + ImVec2(0, flSize), vDrawPos + vSize, uBackground, H::Draw.Scale(4), ImDrawFlags_RoundCornersBottomLeft | ImDrawFlags_RoundCornersBottomRight);
+			pDrawList->AddRectFilled({ vDrawPos.x, vDrawPos.y }, { vDrawPos.x + vSize.x, vDrawPos.y + flSize }, GetColorU32(uTitle), H::Draw.Scale(4), ImDrawFlags_RoundCornersTopLeft | ImDrawFlags_RoundCornersTopRight);
+			pDrawList->AddRectFilled({ vDrawPos.x, vDrawPos.y + flSize }, { vDrawPos.x + vSize.x, vDrawPos.y + vSize.y }, GetColorU32(uBackground), H::Draw.Scale(4), ImDrawFlags_RoundCornersBottomLeft | ImDrawFlags_RoundCornersBottomRight);
 		}
 		else
 		{
-			pDrawList->AddRectFilled(vDrawPos, vDrawPos + ImVec2(flSize, vSize.y), uTitle, H::Draw.Scale(4), ImDrawFlags_RoundCornersTopLeft | ImDrawFlags_RoundCornersBottomLeft);
-			pDrawList->AddRectFilled(vDrawPos + ImVec2(flSize, 0), vDrawPos + vSize, uBackground, H::Draw.Scale(4), ImDrawFlags_RoundCornersTopRight | ImDrawFlags_RoundCornersBottomRight);
+			pDrawList->AddRectFilled({ vDrawPos.x, vDrawPos.y }, { vDrawPos.x + flSize, vDrawPos.y + vSize.y }, GetColorU32(uTitle), H::Draw.Scale(4), ImDrawFlags_RoundCornersTopLeft | ImDrawFlags_RoundCornersBottomLeft);
+			pDrawList->AddRectFilled({ vDrawPos.x + flSize, vDrawPos.y }, { vDrawPos.x + vSize.x, vDrawPos.y + vSize.y }, GetColorU32(uBackground), H::Draw.Scale(4), ImDrawFlags_RoundCornersTopRight | ImDrawFlags_RoundCornersBottomRight);
 		}
 	}
 	inline void RenderTwoToneBackground(float flSize, ImU32 uTitle, ImU32 uBackground, ImU32 uBorder, float flInset = H::Draw.Scale(), bool bVertical = true, bool bTwoToneBorder = true)
@@ -254,39 +254,57 @@ namespace ImGui
 		ImVec2 vDrawPos = GetDrawPos();
 		ImDrawList* pDrawList = GetWindowDrawList();
 
+		// Snap to pixels to prevent sub-pixel bleeding during fade
+		float x1 = floorf(vDrawPos.x + flInset);
+		float y1 = floorf(vDrawPos.y + flInset);
+		float x2 = floorf(vDrawPos.x + vSize.x - flInset);
+		float y2 = floorf(vDrawPos.y + vSize.y - flInset);
+		float split = floorf(vDrawPos.y + flSize);
+		float thick = floorf(H::Draw.Scale());
+
 		if (bVertical)
 		{
-			if (!bTwoToneBorder)
-				pDrawList->AddRectFilled(vDrawPos + ImVec2(flInset, flInset), vDrawPos + ImVec2(vSize.x - flInset, flSize), uTitle, H::Draw.Scale(3), ImDrawFlags_RoundCornersTopLeft | ImDrawFlags_RoundCornersTopRight);
-			else
-			{
-				pDrawList->AddRectFilled(vDrawPos + ImVec2(flInset, flInset), vDrawPos + ImVec2(vSize.x - flInset, flSize - H::Draw.Scale()), uTitle, H::Draw.Scale(3), ImDrawFlags_RoundCornersTopLeft | ImDrawFlags_RoundCornersTopRight);
-				pDrawList->AddRectFilled(vDrawPos + ImVec2(flInset, flSize - H::Draw.Scale()), vDrawPos + ImVec2(vSize.x - flInset, flSize), uBorder);
-			}
-			pDrawList->AddRectFilled(vDrawPos + ImVec2(flInset, flSize), vDrawPos + vSize - ImVec2(flInset, flInset), uBackground, H::Draw.Scale(3), ImDrawFlags_RoundCornersBottomLeft | ImDrawFlags_RoundCornersBottomRight);
+			// 1. Title Block (Stops exactly where the border begins)
+			pDrawList->AddRectFilled({ x1, y1 }, { x2, bTwoToneBorder ? split - thick : split }, GetColorU32(uTitle), H::Draw.Scale(3), ImDrawFlags_RoundCornersTopLeft | ImDrawFlags_RoundCornersTopRight);
+
+			// 2. The Horizontal "Line" (Only if requested, occupies its own space)
+			if (bTwoToneBorder)
+				pDrawList->AddRectFilled({ x1, split - thick }, { x2, split }, GetColorU32(uBorder));
+
+			// 3. Content Block (Starts exactly where the border/title ends)
+			pDrawList->AddRectFilled({ x1, split }, { x2, y2 }, GetColorU32(uBackground), H::Draw.Scale(3), ImDrawFlags_RoundCornersBottomLeft | ImDrawFlags_RoundCornersBottomRight);
 		}
 		else
 		{
-			if (!bTwoToneBorder)
-				pDrawList->AddRectFilled(vDrawPos + ImVec2(flInset, flInset), vDrawPos + ImVec2(flSize, vSize.y - flInset), uTitle, H::Draw.Scale(3), ImDrawFlags_RoundCornersTopLeft | ImDrawFlags_RoundCornersBottomLeft);
-			else
-			{
-				pDrawList->AddRectFilled(vDrawPos + ImVec2(flInset, flInset), vDrawPos + ImVec2(flSize - H::Draw.Scale(), vSize.y - flInset), uTitle, H::Draw.Scale(3), ImDrawFlags_RoundCornersTopLeft | ImDrawFlags_RoundCornersBottomLeft);
-				pDrawList->AddRectFilled(vDrawPos + ImVec2(flSize - H::Draw.Scale(), flInset), vDrawPos + ImVec2(flSize, vSize.y - flInset), uBorder);
-			}
-			pDrawList->AddRectFilled(vDrawPos + ImVec2(flSize, flInset), vDrawPos + vSize - ImVec2(flInset, flInset), uBackground, H::Draw.Scale(3), ImDrawFlags_RoundCornersTopRight | ImDrawFlags_RoundCornersBottomRight);
+			// Horizontal logic (Sidebar)
+			float splitX = floorf(vDrawPos.x + flSize);
+			pDrawList->AddRectFilled({ x1, y1 }, { bTwoToneBorder ? splitX - thick : splitX, y2 }, GetColorU32(uTitle), H::Draw.Scale(3), ImDrawFlags_RoundCornersTopLeft | ImDrawFlags_RoundCornersBottomLeft);
+
+			if (bTwoToneBorder)
+				pDrawList->AddRectFilled({ splitX - thick, y1 }, { splitX, y2 }, GetColorU32(uBorder));
+
+			pDrawList->AddRectFilled({ splitX, y1 }, { x2, y2 }, GetColorU32(uBackground), H::Draw.Scale(3), ImDrawFlags_RoundCornersTopRight | ImDrawFlags_RoundCornersBottomRight);
 		}
 		
-		flInset += H::Draw.Scale(0.5f) - 0.5f - H::Draw.Scale();
-		pDrawList->AddRect(vDrawPos + ImVec2(flInset, flInset), vDrawPos + vSize - ImVec2(flInset, flInset), uBorder, H::Draw.Scale(4), ImDrawFlags_None, H::Draw.Scale());
+		// Outer Outline (Draw this last)
+		// We use flInset - 0.5f to ensure the stroke sits exactly on the edge of the filled boxes
+		float strokeInset = flInset + (H::Draw.Scale(0.5f) - 0.5f) - H::Draw.Scale();
+		pDrawList->AddRect({ vDrawPos.x + strokeInset, vDrawPos.y + strokeInset }, { vDrawPos.x + vSize.x - strokeInset, vDrawPos.y + vSize.y - strokeInset }, GetColorU32(uBorder), H::Draw.Scale(4), ImDrawFlags_None, H::Draw.Scale());
 	}
 	inline void Divider(float flPrePadding = H::Draw.Scale(8), float flPostPadding = H::Draw.Scale(7), float flInset = H::Draw.Scale(), ImU32 uBorder = F::Render.Background2)
 	{
 		ImVec2 vSize = GetWindowSize();
-		ImVec2 vDrawPos = GetDrawPos() + ImVec2(0, GetCursorPosY());
+		ImVec2 vDrawPos = GetDrawPos();
+		float posY = floorf(vDrawPos.y + GetCursorPosY() + flPrePadding);
+		float thickness = floorf(H::Draw.Scale());
 		ImDrawList* pDrawList = GetWindowDrawList();
 
-		pDrawList->AddRectFilled(vDrawPos + ImVec2(flInset, flPrePadding - H::Draw.Scale()), vDrawPos + ImVec2(vSize.x - flInset, flPrePadding), uBorder);
+		// Draw the line as a discrete slice
+		pDrawList->AddRectFilled(
+			{ floorf(vDrawPos.x + flInset), posY - thickness },
+			{ floorf(vDrawPos.x + vSize.x - flInset), posY },
+			GetColorU32(uBorder)
+		);
 		DebugDummy({ 0, flPrePadding + flPostPadding });
 	}
 
@@ -2462,10 +2480,10 @@ namespace ImGui
 
 			PushTransparent(Transparent || !tBind.m_bEnabled, true);
 
-			SetCursorPos({ GetWindowWidth() - H::Draw.Scale(iOffset += 25), H::Draw.Scale(36) });
 			PushTransparent(Transparent || tBind.m_iVisibility == BindVisibilityEnum::Hidden, true);
-			if (IconButton(tBind.m_iVisibility == BindVisibilityEnum::Always ? ICON_MD_VISIBILITY : ICON_MD_VISIBILITY_OFF, H::Draw.Scale(24), { 1, 1, 1, -1 }, &bHovered))
-				tBind.m_iVisibility = (tBind.m_iVisibility + 1) % 3;
+			SetCursorPos({ GetWindowWidth() - H::Draw.Scale(iOffset += 25), H::Draw.Scale(36) });
+			if (IconButton(tBind.m_iVisibility == BindVisibilityEnum::WhileActive ? ICON_MD_VISIBILITY : ICON_MD_VISIBILITY_OFF, H::Draw.Scale(24), { 1, 1, 1, -1 }, &bHovered))
+				tBind.m_iVisibility = (tBind.m_iVisibility == BindVisibilityEnum::WhileActive) ? BindVisibilityEnum::Hidden : BindVisibilityEnum::WhileActive;
 			PopTransparent(1, 1);
 			bLastHovered |= bHovered;
 

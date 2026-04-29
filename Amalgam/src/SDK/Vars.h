@@ -173,7 +173,6 @@ CVar(PrimaryKey, "Primary key", VK_INSERT, NOBIND);
 CVar(SecondaryKey, "Secondary key", VK_F3, NOBIND);
 
 CVar(BindWindow, "Bind window", true);
-CVar(BindWindowTitle, "Bind window title", true);
 CVar(MenuShowsBinds, "Menu shows binds", false, NOBIND);
 
 CVarEnum(Indicators, "Indicators", 0b00000, VISUAL | DROPDOWN_MULTI, nullptr,

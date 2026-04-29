@@ -2767,7 +2767,7 @@ void CMenu::MenuSettings(int iTab)
 				int iNot = tBind.m_bNot;
 				FDropdown("While", &iNot, { "Active", "Not active" }, {}, FDropdownEnum::Left);
 				tBind.m_bNot = iNot;
-				FDropdown("Visibility", &tBind.m_iVisibility, { "Always", "While active", "Hidden" }, {}, FDropdownEnum::Right);
+				FDropdown("Visibility", &tBind.m_iVisibility, { "While active", "Hidden" }, {}, FDropdownEnum::Right);
 				if (tBind.m_iType == 0)
 					FKeybind("Key", tBind.m_iKey, FButtonEnum::None, { Vars::Menu::PrimaryKey[DEFAULT_BIND], Vars::Menu::SecondaryKey[DEFAULT_BIND] }, { 0, 40 }, -96);
 
@@ -2991,8 +2991,8 @@ void CMenu::MenuSettings(int iTab)
 
 						PushTransparent(Transparent || _tBind.m_iVisibility == BindVisibilityEnum::Hidden, true);
 						SetCursorPos(vOriginalPos + ImVec2(flWidth - H::Draw.Scale(iOffset += 25), H::Draw.Scale(2)));
-						if (IconButton(_tBind.m_iVisibility == BindVisibilityEnum::Always ? ICON_MD_VISIBILITY : ICON_MD_VISIBILITY_OFF))
-							_tBind.m_iVisibility = (_tBind.m_iVisibility + 1) % 3;
+						if (IconButton(_tBind.m_iVisibility == BindVisibilityEnum::WhileActive ? ICON_MD_VISIBILITY : ICON_MD_VISIBILITY_OFF))
+							_tBind.m_iVisibility = (_tBind.m_iVisibility == BindVisibilityEnum::WhileActive) ? BindVisibilityEnum::Hidden : BindVisibilityEnum::WhileActive;
 						PopTransparent(1, 1);
 
 						SetCursorPos(vOriginalPos + ImVec2(flWidth - H::Draw.Scale(iOffset += 25), H::Draw.Scale(2)));
@@ -3837,278 +3837,226 @@ void CMenu::AddResizableDraggable(const char* sLabel, ConfigVar<WindowBox_t>& va
 	PopStyleColor(2);
 }
 
-struct BindInfo_t
-{
-	const char* sName;
-	std::string sInfo;
-	std::string sKey;
+struct BindAnimState_t {
+	std::string sName;
 	std::string sValue;
-
-	int iBind;
-	Bind_t& tBind;
+	float flAlpha = 0.0f;
+	float flHeightStep = 0.0f;
+	bool bActive = false;
 };
+
 void CMenu::DrawBinds()
 {
 	using namespace ImGui;
 
-	if (m_bIsOpen ? false : !Vars::Menu::BindWindow.Value || I::EngineVGui->IsGameUIVisible() || I::MatSystemSurface->IsCursorVisible() && !I::EngineClient->IsPlayingDemo())
-		return;
+	bool bMenuOpen = m_bIsOpen;
+	bool bConfigEnabled = Vars::Menu::BindWindow.Value;
+	bool bInGameUI = I::EngineVGui->IsGameUIVisible();
+	bool bCursorVisible = I::MatSystemSurface->IsCursorVisible() && !I::EngineClient->IsPlayingDemo();
 
-	std::vector<BindInfo_t> vInfo;
-	std::function<void(int)> getBinds = [&](int iParent)
+	bool bShouldVisible = bMenuOpen || (bConfigEnabled && !bInGameUI && !bCursorVisible);
+
+	// Animation State
+	static float flGlobalAlpha = 0.0f;
+	static float flAnimMaxNameW = 0.0f;
+	static float flAnimatedWidth = 0.0f;
+	static float flAnimatedHeight = 0.0f;
+	static std::vector<std::pair<uint32_t, BindAnimState_t>> vRowStates;
+
+	// Dragging State
+	static DragBox_t tLastConfigPos = { -65535, -65535 };
+
+	const float flAnimSpeed = 15.0f;
+	float flDeltaTime = GetIO().DeltaTime;
+	float flLerpFactor = std::clamp(flDeltaTime * flAnimSpeed, 0.0f, 1.0f);
+
+	// 1. Data Collection (Logical State)
+	std::unordered_map<uint32_t, std::pair<std::string, std::string>> mCurrentActiveFeatures;
+	float flLogicalMaxNameW = 0.0f;
+	float flLogicalMaxValW = 0.0f;
+
+	if (bShouldVisible)
+	{
+		PushFont(F::Render.FontSmall);
+		for (auto& pBase : G::Vars)
 		{
-			for (auto it = F::Binds.m_vBinds.begin(); it < F::Binds.m_vBinds.end(); it++)
+			if (pBase->m_iFlags & (NOSAVE | NOBIND)) continue;
+
+			int iActiveID = -1;
+			for (int i = 0; i < (int)F::Binds.m_vBinds.size(); i++)
 			{
-				int iBind = std::distance(F::Binds.m_vBinds.begin(), it);
-				auto& tBind = *it;
-				if (iParent != tBind.m_iParent || !tBind.m_bEnabled && !m_bIsOpen)
+				auto& tBind = F::Binds.m_vBinds[i];
+				if (!tBind.m_bEnabled || !tBind.m_bActive || tBind.m_iVisibility != BindVisibilityEnum::WhileActive)
 					continue;
 
-				if (tBind.m_iVisibility == BindVisibilityEnum::Always || tBind.m_iVisibility == BindVisibilityEnum::WhileActive && tBind.m_bActive || m_bIsOpen)
-				{
-					std::string sType; std::string sInfo;
-					switch (tBind.m_iType)
-					{
-					case BindEnum::Key:
-						switch (tBind.m_iInfo)
-						{
-						case BindEnum::KeyEnum::Hold: { sType = "Hold"; break; }
-						case BindEnum::KeyEnum::Toggle: { sType = "Toggle"; break; }
-						case BindEnum::KeyEnum::DoubleClick: { sType = "Double"; break; }
-						}
-						sInfo = U::KeyHandler.String(tBind.m_iKey);
-						break;
-					case BindEnum::Class:
-						sType = "class";
-						switch (tBind.m_iInfo)
-						{
-						case BindEnum::ClassEnum::Scout: { sInfo = "scout"; break; }
-						case BindEnum::ClassEnum::Soldier: { sInfo = "soldier"; break; }
-						case BindEnum::ClassEnum::Pyro: { sInfo = "pyro"; break; }
-						case BindEnum::ClassEnum::Demoman: { sInfo = "demoman"; break; }
-						case BindEnum::ClassEnum::Heavy: { sInfo = "heavy"; break; }
-						case BindEnum::ClassEnum::Engineer: { sInfo = "engineer"; break; }
-						case BindEnum::ClassEnum::Medic: { sInfo = "medic"; break; }
-						case BindEnum::ClassEnum::Sniper: { sInfo = "sniper"; break; }
-						case BindEnum::ClassEnum::Spy: { sInfo = "spy"; break; }
-						}
-						break;
-					case BindEnum::WeaponType:
-						sType = "weapon";
-						switch (tBind.m_iInfo)
-						{
-						case BindEnum::WeaponTypeEnum::Hitscan: { sInfo = "hitscan"; break; }
-						case BindEnum::WeaponTypeEnum::Projectile: { sInfo = "projectile"; break; }
-						case BindEnum::WeaponTypeEnum::Melee: { sInfo = "melee"; break; }
-						case BindEnum::WeaponTypeEnum::Throwable: { sInfo = "throwable"; break; }
-						}
-						break;
-					case BindEnum::ItemSlot:
-						sType = "slot";
-						sInfo = std::format("{}", tBind.m_iInfo + 1);
-						break;
-					}
-					if (tBind.m_bNot && (tBind.m_iType != BindEnum::Key || tBind.m_iInfo == BindEnum::KeyEnum::Hold))
-						sInfo = std::format("not {}", sInfo);
+				bool bAffected = false;
+				if (auto p = pBase->As<bool>()) bAffected = p->Map.contains(i);
+				else if (auto p = pBase->As<int>()) bAffected = p->Map.contains(i);
+				else if (auto p = pBase->As<float>()) bAffected = p->Map.contains(i);
+				else if (auto p = pBase->As<std::string>()) bAffected = p->Map.contains(i);
 
-					std::string sValue = "";
-					{
-						std::vector<std::string> vAffected;
-						for (auto& pVar : G::Vars)
-						{
-							if (auto pBool = pVar->As<bool>())
-							{
-								if (pBool->Map.find(iBind) != pBool->Map.end())
-								{
-									bool value = tBind.m_bActive ? pBool->Map[iBind] : pBool->Map[DEFAULT_BIND];
-									vAffected.push_back(value ? "On" : "Off");
-								}
-							}
-							else if (auto pInt = pVar->As<int>())
-							{
-								if (pInt->Map.find(iBind) != pInt->Map.end())
-								{
-									int value = tBind.m_bActive ? pInt->Map[iBind] : pInt->Map[DEFAULT_BIND];
-									// For dropdowns, show the value name if available
-									if (!pInt->m_vValues.empty() && value >= 0 && value < pInt->m_vValues.size())
-										vAffected.push_back(pInt->m_vValues[value]);
-									else
-										vAffected.push_back(std::to_string(value));
-								}
-							}
-							else if (auto pFloat = pVar->As<float>())
-							{
-								if (pFloat->Map.find(iBind) != pFloat->Map.end())
-								{
-									float value = tBind.m_bActive ? pFloat->Map[iBind] : pFloat->Map[DEFAULT_BIND];
-									vAffected.push_back(std::to_string(value));
-								}
-							}
-							else if (auto pStr = pVar->As<std::string>())
-							{
-								if (pStr->Map.find(iBind) != pStr->Map.end())
-								{
-									std::string value = tBind.m_bActive ? pStr->Map[iBind] : pStr->Map[DEFAULT_BIND];
-									vAffected.push_back(value);
-								}
-							}
-							// add more types as needed
-							else
-								continue; // unknown type, skip
-						}
-						if (vAffected.size() == 1)
-							sValue = vAffected[0];
-						else if (vAffected.size() > 1)
-							sValue = "Multiple";
-					}
-					vInfo.emplace_back(tBind.m_sName.c_str(), sType, sInfo, sValue, iBind, tBind);
-				}
-
-				if (tBind.m_bActive || m_bIsOpen)
-					getBinds(iBind);
-			}
-		};
-	getBinds(DEFAULT_BIND);
-	if (vInfo.empty())
-		return;
-
-	static DragBox_t old = { -2147483648, -2147483648 };
-	DragBox_t info = m_bIsOpen ? FGet(Vars::Menu::BindsDisplay, true) : Vars::Menu::BindsDisplay.Value;
-	if (info != old)
-		SetNextWindowPos({ float(info.x), float(info.y) }, ImGuiCond_Always);
-
-	float flNameWidth = 0, flInfoWidth = 0, flKeyWidth = 0, flValueWidth = 0;
-	PushFont(F::Render.FontSmall);
-	for (auto& [sName, sInfo, sKey, sValue, iBind, tBind] : vInfo)
-	{
-		flNameWidth = std::max(flNameWidth, FCalcTextSize(sName).x);
-		flInfoWidth = std::max(flInfoWidth, FCalcTextSize(sInfo.c_str()).x);
-		flKeyWidth = std::max(flKeyWidth, FCalcTextSize(sKey.c_str()).x);
-		flValueWidth = std::max(flValueWidth, FCalcTextSize(sValue.c_str()).x);
-	}
-	PopFont();
-	flNameWidth += H::Draw.Scale(9), flInfoWidth += H::Draw.Scale(9), flKeyWidth += H::Draw.Scale(9), flValueWidth += H::Draw.Scale(9);
-
-	float flWidth = flNameWidth + flInfoWidth + flKeyWidth + flValueWidth + (m_bIsOpen ? H::Draw.Scale(113) : H::Draw.Scale(14));
-	float flHeight = H::Draw.Scale(18 * vInfo.size() + (Vars::Menu::BindWindowTitle.Value ? 42 : 12)) + 2;
-	SetNextWindowSize({ flWidth, flHeight });
-	PushStyleVar(ImGuiStyleVar_WindowMinSize, { H::Draw.Scale(40), H::Draw.Scale(40) });
-	if (Begin("Binds", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoFocusOnAppearing))
-	{
-		ImVec2 vWindowPos = GetWindowPos();
-
-		if (Vars::Menu::BindWindowTitle.Value)
-			RenderBackground(F::Render.Background0, 1.f, 1.f);
-		else
-			RenderBackground(F::Render.Background0, 1.f, 1.f);
-
-		info.x = vWindowPos.x; info.y = vWindowPos.y; old = info;
-		if (m_bIsOpen)
-			FSet(Vars::Menu::BindsDisplay, info);
-
-		int iListStart = 8;
-		if (Vars::Menu::BindWindowTitle.Value)
-		{
-			PushFont(F::Render.FontLarge);
-			SetCursorPos({ H::Draw.Scale(7), H::Draw.Scale(10) });
-			FText(" Binds");
-			PopFont();
-
-			GetWindowDrawList()->AddLine(
-				{ vWindowPos.x + H::Draw.Scale(8), vWindowPos.y + H::Draw.Scale(30) - 1 },
-				{ vWindowPos.x + flWidth - H::Draw.Scale(8), vWindowPos.y + H::Draw.Scale(30) - 1 },
-				ImGui::GetColorU32(F::Render.Accent.Value),
-				1.0f
-			);
-			iListStart = 36;
-		}
-
-		PushFont(F::Render.FontSmall);
-		int i = 0; for (auto& [sName, sInfo, sKey, sValue, iBind, tBind] : vInfo)
-		{
-			float flPosX = 0;
-
-			if (m_bIsOpen)
-				PushTransparent(!F::Binds.WillBeEnabled(iBind), true);
-
-			SetCursorPos({ flPosX += H::Draw.Scale(12), H::Draw.Scale(iListStart + 18 * i) });
-			PushStyleColor(ImGuiCol_Text, tBind.m_bActive ? F::Render.Accent.Value : F::Render.Inactive.Value);
-			FText(sInfo.c_str());
-			PopStyleColor();
-
-			SetCursorPos({ flPosX += flInfoWidth, H::Draw.Scale(iListStart + 18 * i) });
-			PushStyleColor(ImGuiCol_Text, tBind.m_bActive ? F::Render.Active.Value : F::Render.Inactive.Value);
-			FText(sName);
-			PopStyleColor();
-
-			SetCursorPos({ flPosX += flNameWidth, H::Draw.Scale(iListStart + 18 * i) });
-			PushStyleColor(ImGuiCol_Text, tBind.m_bActive ? F::Render.Active.Value : F::Render.Inactive.Value);
-			FText(sKey.c_str());
-			PopStyleColor();
-
-			SetCursorPos({ flPosX += flKeyWidth, H::Draw.Scale(iListStart + 18 * i) });
-			PushStyleColor(ImGuiCol_Text, tBind.m_bActive ? F::Render.Accent.Value : F::Render.Inactive.Value);
-			FText(sValue.c_str());
-			PopStyleColor();
-
-			if (m_bIsOpen)
-			{	// buttons
-				SetCursorPos({ flWidth - H::Draw.Scale(26), H::Draw.Scale(iListStart - 2 + 18 * i) });
-				bool bDelete = IconButton(ICON_MD_DELETE, H::Draw.Scale(18));
-
-				SetCursorPos({ flWidth - H::Draw.Scale(51), H::Draw.Scale(iListStart - 2 + 18 * i) });
-				if (IconButton(!tBind.m_bNot ? ICON_MD_CODE : ICON_MD_CODE_OFF, H::Draw.Scale(18)))
-					tBind.m_bNot = !tBind.m_bNot;
-
-				PushTransparent(Transparent || tBind.m_iVisibility == BindVisibilityEnum::Hidden, true);
-				SetCursorPos({ flWidth - H::Draw.Scale(76), H::Draw.Scale(iListStart - 2 + 18 * i) });
-				if (IconButton(tBind.m_iVisibility == BindVisibilityEnum::Always ? ICON_MD_VISIBILITY : ICON_MD_VISIBILITY_OFF, H::Draw.Scale(18)))
-					tBind.m_iVisibility = (tBind.m_iVisibility + 1) % 3;
-				PopTransparent(1, 1);
-
-				SetCursorPos({ flWidth - H::Draw.Scale(101), H::Draw.Scale(iListStart - 2 + 18 * i) });
-				if (IconButton(tBind.m_bEnabled ? ICON_MD_TOGGLE_ON : ICON_MD_TOGGLE_OFF, H::Draw.Scale(18)))
-					tBind.m_bEnabled = !tBind.m_bEnabled;
-
-				PopTransparent(1, 1);
-
-				PushFont(F::Render.FontRegular);
-				PushStyleVar(ImGuiStyleVar_WindowPadding, { H::Draw.Scale(8), H::Draw.Scale(8) });
-
-				if (bDelete)
-				{
-					if (U::KeyHandler.Down(VK_SHIFT)) // allow user to quickly remove binds
-						F::Binds.RemoveBind(iBind);
-					else
-						OpenPopup(std::format("Confirmation## DeleteBind{}", iBind).c_str());
-				}
-				if (FBeginPopupModal(std::format("Confirmation## DeleteBind{}", iBind).c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar))
-				{
-					FText(std::format("Do you really want to delete '{}'{}?", tBind.m_sName, F::Binds.HasChildren(iBind) ? " and all of its children" : "").c_str());
-
-					SetCursorPosY(GetCursorPosY() - 8); // stupid and i don't know why this is needed here
-					if (FButton("Yes", FButtonEnum::Left))
-					{
-						F::Binds.RemoveBind(iBind);
-						CloseCurrentPopup();
-					}
-					if (FButton("No", FButtonEnum::Right | FButtonEnum::SameLine))
-						CloseCurrentPopup();
-
-					EndPopup();
-				}
-
-				PopStyleVar();
-				PopFont();
+				if (bAffected) { iActiveID = i; break; }
 			}
 
-			i++;
+			if (iActiveID != -1)
+			{
+				std::string sName = StripDoubleHash(pBase->m_vNames.front());
+				if (sName == "Enabled" && pBase->Section())
+					sName = pBase->Section();
+
+				std::string sVal = "On";
+				if (auto pB = pBase->As<bool>()) sVal = pB->Value ? "On" : "Off";
+				else if (auto pI = pBase->As<int>()) {
+					int val = pI->Value;
+					sVal = (!pI->m_vValues.empty() && val >= 0 && val < (int)pI->m_vValues.size()) ? pI->m_vValues[val] : std::to_string(val);
+				}
+				else if (auto pF = pBase->As<float>()) sVal = std::to_string((int)pF->Value);
+				else if (auto pS = pBase->As<std::string>()) sVal = pS->Value;
+
+				mCurrentActiveFeatures[FNV1A::Hash32(pBase->Name())] = { sName, sVal };
+
+				// Calculate logical targets immediately
+				flLogicalMaxNameW = std::max(flLogicalMaxNameW, CalcTextSize(sName.c_str()).x);
+				flLogicalMaxValW = std::max(flLogicalMaxValW, CalcTextSize(sVal.c_str()).x);
+			}
 		}
 		PopFont();
-
-		End();
 	}
-	PopStyleVar();
+
+	// 2. Manage Persistent Rows
+	for (auto& [hash, state] : vRowStates) state.bActive = mCurrentActiveFeatures.count(hash) > 0;
+	for (auto& [hash, data] : mCurrentActiveFeatures) {
+		if (std::find_if(vRowStates.begin(), vRowStates.end(), [&](const auto& p) { return p.first == hash; }) == vRowStates.end()) {
+			BindAnimState_t newState; newState.sName = data.first; newState.sValue = data.second; newState.bActive = true;
+			vRowStates.push_back({ hash, newState });
+		}
+		else {
+			auto it = std::find_if(vRowStates.begin(), vRowStates.end(), [&](const auto& p) { return p.first == hash; });
+			it->second.sValue = data.second;
+		}
+	}
+
+	// 3. Simultaneous Animation Logic
+	float flSummedRowsHeight = 0.0f;
+	for (auto it = vRowStates.begin(); it != vRowStates.end();) {
+		auto& state = it->second;
+		float flTarget = state.bActive ? 1.0f : 0.0f;
+
+		state.flAlpha = std::lerp(state.flAlpha, flTarget, flLerpFactor);
+		state.flHeightStep = std::lerp(state.flHeightStep, flTarget, flLerpFactor);
+
+		if (abs(state.flAlpha - flTarget) < 0.005f) state.flAlpha = state.flHeightStep = flTarget;
+		if (!state.bActive && state.flAlpha <= 0.0f) { it = vRowStates.erase(it); continue; }
+
+		flSummedRowsHeight += roundf(H::Draw.Scale(18.0f) * state.flHeightStep);
+		++it;
+	}
+
+	// Animate Column splits and Window Dimensions simultaneously towards Logical Targets
+	flAnimMaxNameW = std::lerp(flAnimMaxNameW, flLogicalMaxNameW, flLerpFactor);
+	if (abs(flAnimMaxNameW - flLogicalMaxNameW) < 0.5f) flAnimMaxNameW = flLogicalMaxNameW;
+
+	float flGap = H::Draw.Scale(30);
+	float flTargetTotalW = roundf(std::max(H::Draw.Scale(60.0f), flLogicalMaxNameW + flGap + flLogicalMaxValW + H::Draw.Scale(24)));
+	float flTargetTotalH = roundf(H::Draw.Scale(36.0f) + flSummedRowsHeight + H::Draw.Scale(4.0f + 2.0f));
+
+	flAnimatedWidth = std::lerp(flAnimatedWidth, flTargetTotalW, flLerpFactor);
+	flAnimatedHeight = std::lerp(flAnimatedHeight, flTargetTotalH, flLerpFactor);
+	if (abs(flAnimatedWidth - flTargetTotalW) < 0.5f) flAnimatedWidth = flTargetTotalW;
+	if (abs(flAnimatedHeight - flTargetTotalH) < 0.5f) flAnimatedHeight = flTargetTotalH;
+
+	// Global Alpha Lerp
+	float flAlphaTarget = (bShouldVisible && (!mCurrentActiveFeatures.empty() || bMenuOpen)) ? 1.0f : 0.0f;
+	flGlobalAlpha = std::lerp(flGlobalAlpha, flAlphaTarget, flLerpFactor);
+	if (abs(flGlobalAlpha - flAlphaTarget) < 0.005f) flGlobalAlpha = flAlphaTarget;
+
+	if (flGlobalAlpha <= 0.001f && vRowStates.empty()) return;
+
+	// 4. Dragging & Window Rendering
+	DragBox_t tConfigPos = bMenuOpen ? FGet(Vars::Menu::BindsDisplay, true) : Vars::Menu::BindsDisplay.Value;
+	if (tConfigPos.x != tLastConfigPos.x || tConfigPos.y != tLastConfigPos.y) {
+		SetNextWindowPos({ (float)tConfigPos.x, (float)tConfigPos.y }, ImGuiCond_Always);
+		tLastConfigPos = tConfigPos;
+	}
+
+	SetNextWindowSize({ flAnimatedWidth, flAnimatedHeight });
+
+	int windowFlags = ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar |
+		ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
+	if (!bMenuOpen) windowFlags |= ImGuiWindowFlags_NoInputs;
+
+	PushStyleVar(ImGuiStyleVar_Alpha, flGlobalAlpha);
+	PushStyleVar(ImGuiStyleVar_WindowMinSize, { 1, 1 });
+	PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.f);
+
+	if (Begin("Binds", nullptr, windowFlags))
+	{
+		ImVec2 vWindowPos = GetWindowPos();
+		ImVec2 vActualSize = GetWindowSize(); // Real pixel size from ImGui
+
+		if (bMenuOpen && (abs(vWindowPos.x - (float)tConfigPos.x) > 0.1f || abs(vWindowPos.y - (float)tConfigPos.y) > 0.1f)) {
+			tConfigPos.x = (int)vWindowPos.x; tConfigPos.y = (int)vWindowPos.y;
+			tLastConfigPos = tConfigPos;
+			FSet(Vars::Menu::BindsDisplay, tConfigPos);
+		}
+
+		auto pDrawList = GetWindowDrawList();
+
+		// --- GLOW RENDERING (Uses Actual Window Size) ---
+		const float flGlowSize = roundf(H::Draw.Scale(10.f));
+		const float flGlowAlphaMult = 0.25f;
+		ImColor tBaseColor = F::Render.Background0;
+
+		pDrawList->PushClipRectFullScreen();
+		for (int i = 1; i <= (int)flGlowSize; i++) {
+			float flRatio = 1.0f - ((float)i / flGlowSize);
+			float flLayerAlpha = flRatio * flRatio;
+			ImU32 uLayerColor = GetColorU32(ImVec4(tBaseColor.Value.x, tBaseColor.Value.y, tBaseColor.Value.z, tBaseColor.Value.w * flLayerAlpha * flGlowAlphaMult));
+
+			// Use vActualSize to ensure the glow is perfectly flush with the border
+			pDrawList->AddRect({ vWindowPos.x - i, vWindowPos.y - i },
+				{ vWindowPos.x + vActualSize.x + i, vWindowPos.y + vActualSize.y + i },
+				uLayerColor, H::Draw.Scale(4) + i);
+		}
+		pDrawList->PopClipRect();
+
+		// Forced Two-Tone Background (Title bar always on)
+		RenderTwoToneBackground(H::Draw.Scale(28), F::Render.Background0, F::Render.Background0p5, F::Render.Background2);
+
+		PushClipRect(vWindowPos, { vWindowPos.x + vActualSize.x, vWindowPos.y + vActualSize.y }, true);
+
+		// Header
+		PushFont(F::Render.FontLarge);
+		SetCursorPos({ H::Draw.Scale(12), H::Draw.Scale(7) });
+		FText("Binds");
+		PopFont();
+
+		float flDrawY = H::Draw.Scale(36);
+		PushFont(F::Render.FontSmall);
+		for (auto& row : vRowStates) {
+			auto& state = row.second;
+			if (state.flAlpha < 0.001f) continue;
+			PushStyleVar(ImGuiStyleVar_Alpha, flGlobalAlpha * state.flAlpha);
+
+			SetCursorPos({ H::Draw.Scale(12), flDrawY });
+			PushStyleColor(ImGuiCol_Text, F::Render.Active.Value);
+			FText(state.sName.c_str());
+			PopStyleColor();
+
+			// Column 2: Uses animated flAnimMaxNameW for simultaneous horizontal slide
+			SetCursorPos({ H::Draw.Scale(12) + roundf(flAnimMaxNameW) + flGap, flDrawY });
+			PushStyleColor(ImGuiCol_Text, F::Render.Accent.Value);
+			FText(state.sValue.c_str());
+			PopStyleColor();
+
+			PopStyleVar();
+			flDrawY += roundf(H::Draw.Scale(18.0f) * state.flHeightStep);
+		}
+		PopFont();
+		PopClipRect();
+	}
+	End();
+	PopStyleVar(3);
 }
 
 static inline void SquareConstraints(ImGuiSizeCallbackData* data)

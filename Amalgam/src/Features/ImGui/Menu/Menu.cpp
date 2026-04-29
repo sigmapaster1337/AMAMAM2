@@ -1498,7 +1498,23 @@ void CMenu::MenuLogs(int iTab)
 						// tag bar
 						bool bPopup = false;
 						bool bIcon = tPlayer.m_bLocal || F::Spectate.GetTarget(true) == tPlayer.m_iUserID || tPlayer.m_bFriend || tPlayer.m_bParty;
+						int lOffset = H::Draw.Scale(10);
+						if (bIcon)
+						{
+							SetCursorPos(vOriginalPos + ImVec2(H::Draw.Scale(7), H::Draw.Scale(6)));
+							if (tPlayer.m_bLocal) IconImage(ICON_MD_PERSON);
+							else if (F::Spectate.GetTarget(true) == tPlayer.m_iUserID) IconImage(ICON_MD_VISIBILITY);
+							else if (tPlayer.m_bFriend) IconImage(ICON_MD_GROUP);
+							else if (tPlayer.m_bParty) IconImage(ICON_MD_GROUPS);
+							lOffset += H::Draw.Scale(19);
+						}
 						float flBarWidth = 0.f;
+
+						SetCursorPos(vOriginalPos + ImVec2(lOffset, H::Draw.Scale(7)));
+						float flMaxNameWidth = flWidth - lOffset - H::Draw.Scale(100); // Leave some room for tags
+						auto sName = TruncateText(tPlayer.m_sName, flMaxNameWidth);
+						FText(sName.c_str());
+						float flNameWidth = FCalcTextSize(sName.c_str()).x;
 
 						if (!tPlayer.m_bFake)
 						{
@@ -1531,13 +1547,14 @@ void CMenu::MenuLogs(int iTab)
 									flBarWidth += FCalcTextSize(tTag.m_sName.c_str()).x + H::Draw.Scale(14);
 								for (auto& [pTag, iID] : vTags)
 									flBarWidth += FCalcTextSize(pTag->m_sName.c_str()).x + H::Draw.Scale(iID ? 29 : 14);
-								flBarWidth = std::min(flBarWidth, std::max(flWidth - FCalcTextSize(tPlayer.m_sName.c_str(), F::Render.FontRegular).x - H::Draw.Scale(bIcon ? 33 : 14), flWidth / 2));
+								float flTagsStartPos = lOffset + flNameWidth + H::Draw.Scale(8);
+								float flRemainingSpace = flWidth - flTagsStartPos - H::Draw.Scale(4);
 
-								SetCursorPos(vOriginalPos + ImVec2(flWidth - floorf(flBarWidth), 0));
-								if (BeginChild(std::format("TagBar{}", tPlayer.m_iUserID).c_str(), { flBarWidth, flHeight }, ImGuiWindowFlags_None, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBackground))
+								SetCursorPos(vOriginalPos + ImVec2(flTagsStartPos, 0));
+								if (BeginChild(std::format("TagBar{}", tPlayer.m_iUserID).c_str(), { flRemainingSpace, flHeight }, ImGuiWindowFlags_None, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoBackground))
 								{
 									const auto vDrawPos = GetDrawPos();
-									float flTagOffset = H::Draw.Scale(4);
+									float flTagOffset = 0.f;
 									auto fDrawTag = [&](PriorityLabel_t& tTag, int iID)
 										{
 											ImColor tTagColor = ColorToVec(tTag.m_tColor);
@@ -1570,25 +1587,6 @@ void CMenu::MenuLogs(int iTab)
 							}
 						}
 
-						// text + icons
-						int lOffset = H::Draw.Scale(10);
-						if (bIcon)
-						{
-							lOffset += H::Draw.Scale(19);
-							SetCursorPos(vOriginalPos + ImVec2(H::Draw.Scale(7), H::Draw.Scale(6)));
-							if (tPlayer.m_bLocal)
-								IconImage(ICON_MD_PERSON);
-							else if (F::Spectate.GetTarget(true) == tPlayer.m_iUserID)
-								IconImage(ICON_MD_VISIBILITY);
-							else if (tPlayer.m_bFriend)
-								IconImage(ICON_MD_GROUP);
-							else if (tPlayer.m_bParty)
-								IconImage(ICON_MD_GROUPS);
-						}
-						SetCursorPos(vOriginalPos + ImVec2(lOffset, H::Draw.Scale(7)));
-						auto sName = TruncateText(tPlayer.m_sName, flWidth - lOffset - flBarWidth);
-						FText(sName.c_str());
-						lOffset += FCalcTextSize(sName.c_str()).x + H::Draw.Scale(8);
 
 						// buttons
 						SetCursorPos(vOriginalPos);

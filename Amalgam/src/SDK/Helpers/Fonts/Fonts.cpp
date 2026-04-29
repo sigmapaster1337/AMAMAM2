@@ -9,8 +9,7 @@ void CFonts::Reload(float flDPI)
 {
     Shutdown();
 
-    SDK::Output("Amalgam", std::format("Reloading fonts with DPI scale: {:.1f}", flDPI).c_str(),
-        Vars::Menu::Theme::Accent.Value, OUTPUT_CONSOLE);
+    //SDK::Output("Amalgam", std::format("Reloading fonts with DPI scale: {:.1f}", flDPI).c_str(), Vars::Menu::Theme::Accent.Value, OUTPUT_CONSOLE);
 
     m_mFonts[FONT_ESP] = {
         "Tahoma",

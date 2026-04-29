@@ -90,10 +90,10 @@ void CMenu::DrawMenu()
 			{ &iTab, &iAimbotTab, nullptr, &iVisualsTab, nullptr, &iLogsTab, &iSettingsTab },
 			{ flSize - H::Draw.Scale(16), H::Draw.Scale(36) },
 			{ H::Draw.Scale(8), H::Draw.Scale(8) + flOffset },
-			FTabsEnum::Vertical | FTabsEnum::HorizontalIcons | FTabsEnum::AlignLeft | FTabsEnum::BarLeft,
-			{ { ICON_MD_PERSON }, { ICON_MD_BOLT }, { ICON_MD_VISIBILITY }, { ICON_MD_ARTICLE }, { ICON_MD_IMPORT_CONTACTS }, { ICON_MD_SETTINGS } },
-			{ H::Draw.Scale(10), 0 }, {},
-			{}, { H::Draw.Scale(22), 0 }
+			FTabsEnum::Vertical | FTabsEnum::AlignLeft | FTabsEnum::BarLeft, // Removed HorizontalIcons
+			{}, // Empty icons
+			{ H::Draw.Scale(10), 0 }, // X offset to move text away from the bar
+			{}, { H::Draw.Scale(6), 0 }, {}
 		);
 		PopFont();
 

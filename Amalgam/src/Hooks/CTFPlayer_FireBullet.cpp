@@ -64,21 +64,50 @@ MAKE_HOOK(CTFPlayer_FireBullet, S::CTFPlayer_FireBullet(), void,
 	case FNV1A::Hash32Const("Line"):
 	case FNV1A::Hash32Const("Line ignore Z"):
 	{
-		float flTime = I::GlobalVars->curtime + Vars::Visuals::Line::DrawDuration.Value;
-		for (auto& tLine : G::LineStorage)
+		const float flDrawDuration = Vars::Visuals::Line::DrawDuration.Value;
+		const float flFadeout = Vars::Visuals::Line::Fadeout.Value;
+		const float flEndTime = I::GlobalVars->curtime + flDrawDuration + flFadeout;
+
+		Color_t tLineColor = (uHash == FNV1A::Hash32Const("Line"))
+			? Vars::Colors::Line.Value
+			: Vars::Colors::LineIgnoreZ.Value;
+
+		bool bZBuffer = (uHash == FNV1A::Hash32Const("Line"));
+
+		// Store in our fading vector
+		F::Visuals.m_vLines.emplace_back(
+			std::pair<Vec3, Vec3>(trace.startpos, trace.endpos),
+			flEndTime,
+			tLineColor,
+			bZBuffer
+		);
+
+		// === Box at impact point (exact same size as projectile path) ===
+		if (Vars::Colors::LineBox.Value)
 		{
-			if (flTime != tLine.m_flTime)
+			const float flSize = 1.f;                    // exact same as projectile path boxes
+			const Vec3 vMins = { -flSize, -flSize, -flSize };
+			const Vec3 vMaxs = { flSize,  flSize,  flSize };
+
+			Color_t tEdge = bZBuffer ? Vars::Colors::LineBoxEdge.Value : Vars::Colors::LineBoxEdgeIgnoreZ.Value;
+			Color_t tFace = bZBuffer ? Vars::Colors::LineBoxFace.Value : Vars::Colors::LineBoxFaceIgnoreZ.Value;
+
+			if (tEdge.a || tFace.a)
 			{
-				G::LineStorage.clear();
-				break;
+				DrawBoxFadeBullet_t tBox;
+				tBox.m_vOrigin = trace.endpos;
+				tBox.m_vMins = vMins;
+				tBox.m_vMaxs = vMaxs;
+				tBox.m_vAngles = Vec3();
+				tBox.m_flTime = flEndTime;           // same lifetime as the line
+				tBox.m_tColorEdge = tEdge;
+				tBox.m_tColorFace = tFace;
+				tBox.m_bZBuffer = bZBuffer;
+
+				F::Visuals.m_vBulletBoxes.emplace_back(tBox);
 			}
 		}
 
-		if (uHash == FNV1A::Hash32Const("Line"))
-			G::LineStorage.emplace_back(std::pair<Vec3, Vec3>(trace.startpos, trace.endpos), flTime, Vars::Colors::Line.Value, true);
-		else
-			G::LineStorage.emplace_back(std::pair<Vec3, Vec3>(trace.startpos, trace.endpos), flTime, Vars::Colors::LineIgnoreZ.Value);
-			
 		break;
 	}
 	case FNV1A::Hash32Const("Beam"):
@@ -108,7 +137,7 @@ MAKE_HOOK(CTFPlayer_FireBullet, S::CTFPlayer_FireBullet(), void,
 
 		if (auto pBeam = I::ViewRenderBeams->CreateBeamPoints(beamInfo))
 			I::ViewRenderBeams->DrawBeam(pBeam);
-			
+
 		break;
 	}
 	default:

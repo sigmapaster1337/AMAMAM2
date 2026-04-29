@@ -87,7 +87,11 @@ void CAimbot::Draw(CTFPlayer* pLocal)
 	if (pWeapon && !SDK::AttribHookValue(1, "mult_dmg", pWeapon))
 		return;
 
-	if (Vars::Aimbot::General::AimFOV.Value >= 90.f)
+	float flAimFOV = Vars::Aimbot::General::AimFOV.Value;
+	if (pWeapon && pWeapon->GetSlot() == SLOT_MELEE)
+		flAimFOV = Vars::Aimbot::Melee::AimFOV.Value;
+
+	if (flAimFOV >= 90.f)
 		return;
 
 	float flRadius = tanf(Math::Deg2Rad(Vars::Aimbot::General::AimFOV.Value)) / tanf(Math::Deg2Rad(G::FOV) / 2) * float(H::Draw.m_nScreenW) * (4.f / 6.f) / (16.f / 9.f);

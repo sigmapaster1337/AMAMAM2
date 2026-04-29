@@ -377,13 +377,68 @@ static inline void StorePlayer(CTFPlayer* pPlayer, CTFPlayer* pLocal, Group_t* p
 				if (!vPriorityTags.empty())
 				{
 					std::sort(vPriorityTags.begin(), vPriorityTags.end(), [&](const auto a, const auto b) -> bool
-					{
+						{
 							return std::get<2>(a) < std::get<2>(b);
-					});
+						});
 
 					for (auto& [sName, tColor, _] : vPriorityTags)
 						// Store priority tags in a separate vector to be drawn after weapon info
 						tCache.m_vPriorityText.emplace_back(sName, tColor);
+				}
+			}
+			if (pGroup->m_iESP & ESPEnum::Labels)
+			{
+				std::vector<std::tuple<std::string, Color_t, int>> vLabels = {};
+
+				for (auto& iID : F::PlayerUtils.GetPlayerTags(uAccountID))
+				{
+					auto pTag = F::PlayerUtils.GetTag(iID);
+					if (pTag && pTag->m_bLabel)
+						vLabels.emplace_back(pTag->m_sName, pTag->m_tColor, pTag->m_iPriority);
+				}
+				if (H::Entities.IsFriend(uAccountID))
+				{
+					auto pTag = &F::PlayerUtils.m_vTags[F::PlayerUtils.TagToIndex(FRIEND_TAG)];
+					if (pTag->m_bLabel)
+						vLabels.emplace_back(pTag->m_sName, pTag->m_tColor, pTag->m_iPriority);
+				}
+				if (auto iParty = H::Entities.GetParty(uAccountID))
+				{
+					auto pTag = &F::PlayerUtils.m_vTags[F::PlayerUtils.TagToIndex(PARTY_TAG)];
+					if (int iPartyCount = H::Entities.GetPartyCount() + 1; pTag->m_bLabel)
+					{
+						if (iParty == 1)
+						{
+							vLabels.emplace_back(pTag->m_sName, pTag->m_tColor, pTag->m_iPriority);
+						}
+						else if (Vars::Colors::PartyESP.Value)
+						{
+							vLabels.emplace_back(
+								std::format("{}: {}", pTag->m_sName, iParty - 1),
+								pTag->m_tColor.HueShift((iParty - 1) * 360.f / iPartyCount),
+								pTag->m_iPriority
+							);
+						}
+					}
+				}
+				if (H::Entities.IsF2P(uAccountID))
+				{
+					auto pTag = &F::PlayerUtils.m_vTags[F::PlayerUtils.TagToIndex(F2P_TAG)];
+					if (pTag->m_bLabel)
+						vLabels.emplace_back(pTag->m_sName, pTag->m_tColor, pTag->m_iPriority);
+				}
+
+				if (!vLabels.empty())
+				{
+					std::sort(vLabels.begin(), vLabels.end(), [&](const auto a, const auto b) -> bool
+						{
+							if (std::get<2>(a) != std::get<2>(b))
+								return std::get<2>(a) > std::get<2>(b);
+							return std::get<0>(a) < std::get<0>(b);
+						});
+
+					for (auto& [sName, tColor, _] : vLabels)
+						tCache.m_vText.emplace_back(ALIGN_TOPRIGHT, sName, tColor, tColor.IsColorDark() ? Color_t(255, 255, 255) : Color_t(0, 0, 0));
 				}
 			}
 		}
@@ -643,14 +698,14 @@ static inline void StorePlayer(CTFPlayer* pPlayer, CTFPlayer* pLocal, Group_t* p
 				else
 				{
 					auto fGetSniperDot = [](CBaseEntity* pEntity) -> CSniperDot*
-					{
-						for (auto pDot : H::Entities.GetGroup(EntityEnum::SniperDots))
 						{
-							if (pDot->m_hOwnerEntity().Get() == pEntity)
-								return pDot->As<CSniperDot>();
-						}
-						return nullptr;
-					};
+							for (auto pDot : H::Entities.GetGroup(EntityEnum::SniperDots))
+							{
+								if (pDot->m_hOwnerEntity().Get() == pEntity)
+									return pDot->As<CSniperDot>();
+							}
+							return nullptr;
+						};
 					if (CSniperDot* pPlayerDot = fGetSniperDot(pPlayer))
 					{
 						float flChargeTime = std::max(SDK::AttribHookValue(3.f, "mult_sniper_charge_per_sec", pWeapon), 1.5f);
@@ -742,9 +797,9 @@ static inline void StoreBuilding(CBaseObject* pBuilding, CTFPlayer* pLocal, Grou
 
 		if (pGroup->m_iESP & ESPEnum::AmmoBars)
 		{
-			tCache.m_vBars.emplace_back(ALIGN_BOTTOM, float(iShells) / iMaxShells, Vars::Menu::Theme::Inactive.Value, Color_t(), false);
+			tCache.m_vBars.emplace_back(ALIGN_BOTTOM, float(iShells) / iMaxShells, Vars::Colors::SentryAmmo.Value, Color_t(), false);
 			if (iMaxRockets)
-				tCache.m_vBars.emplace_back(ALIGN_BOTTOM, float(iRockets) / iMaxRockets, Vars::Menu::Theme::Inactive.Value, Color_t(), false);
+				tCache.m_vBars.emplace_back(ALIGN_BOTTOM, float(iRockets) / iMaxRockets, Vars::Colors::SentryRockets.Value, Color_t(), false);
 		}
 		if (pGroup->m_iESP & ESPEnum::AmmoText)
 		{
@@ -1078,7 +1133,7 @@ void CESP::DrawPlayers()
 		int t = y - H::Draw.Scale(5), b = y + h + H::Draw.Scale(5);
 		int lOffset = 0, rOffset = 0, bOffset = 0, tOffset = 0;
 		I::MatSystemSurface->DrawSetAlphaMultiplier(tCache.m_flAlpha);
-		
+
 		if (tCache.m_bBox)
 			H::Draw.LineRectOutline(x, y, w, h, tCache.m_tColor, { 0, 0, 0, 255 });
 
@@ -1114,15 +1169,15 @@ void CESP::DrawPlayers()
 		for (auto& [iMode, flPercent, tColor, tOverfill, bAdjust] : tCache.m_vBars)
 		{
 			auto fDrawBar = [&](int x, int y, int w, int h, EAlign eAlign = ALIGN_LEFT)
-			{
-				if (flPercent > 1.f)
 				{
-					H::Draw.FillRectPercent(x, y, w, h, 1.f, tColor, { 0, 0, 0, 255 }, eAlign, bAdjust);
-					H::Draw.FillRectPercent(x, y, w, h, flPercent - 1.f, tOverfill, { 0, 0, 0, 0 }, eAlign, bAdjust);
-				}
-				else
-					H::Draw.FillRectPercent(x, y, w, h, flPercent, tColor, { 0, 0, 0, 255 }, eAlign, bAdjust);
-			};
+					if (flPercent > 1.f)
+					{
+						H::Draw.FillRectPercent(x, y, w, h, 1.f, tColor, { 0, 0, 0, 255 }, eAlign, bAdjust);
+						H::Draw.FillRectPercent(x, y, w, h, flPercent - 1.f, tOverfill, { 0, 0, 0, 0 }, eAlign, bAdjust);
+					}
+					else
+						H::Draw.FillRectPercent(x, y, w, h, flPercent, tColor, { 0, 0, 0, 255 }, eAlign, bAdjust);
+				};
 
 			int iSpace = H::Draw.Scale(4);
 			int iThickness = H::Draw.Scale(2, Scale_Round);
@@ -1278,15 +1333,15 @@ void CESP::DrawBuildings()
 		for (auto& [iMode, flPercent, tColor, tOverfill, bAdjust] : tCache.m_vBars)
 		{
 			auto fDrawBar = [&](int x, int y, int w, int h, EAlign eAlign = ALIGN_LEFT)
-			{
-				if (flPercent > 1.f)
 				{
-					H::Draw.FillRectPercent(x, y, w, h, 1.f, tColor, { 0, 0, 0, 255 }, eAlign, bAdjust);
-					H::Draw.FillRectPercent(x, y, w, h, flPercent - 1.f, tOverfill, { 0, 0, 0, 0 }, eAlign, bAdjust);
-				}
-				else
-					H::Draw.FillRectPercent(x, y, w, h, flPercent, tColor, { 0, 0, 0, 255 }, eAlign, bAdjust);
-			};
+					if (flPercent > 1.f)
+					{
+						H::Draw.FillRectPercent(x, y, w, h, 1.f, tColor, { 0, 0, 0, 255 }, eAlign, bAdjust);
+						H::Draw.FillRectPercent(x, y, w, h, flPercent - 1.f, tOverfill, { 0, 0, 0, 0 }, eAlign, bAdjust);
+					}
+					else
+						H::Draw.FillRectPercent(x, y, w, h, flPercent, tColor, { 0, 0, 0, 255 }, eAlign, bAdjust);
+				};
 
 			int iSpace = H::Draw.Scale(4);
 			int iThickness = H::Draw.Scale(2, Scale_Round);

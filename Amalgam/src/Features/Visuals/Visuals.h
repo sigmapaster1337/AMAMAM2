@@ -13,6 +13,33 @@ struct Projectile_t
 	int m_iFlags = 0b0;
 };
 
+struct DrawBoxFade_t : public DrawBox_t
+{
+	float m_flDrawTime = 0.f;
+	float m_flFadeStartTime = 0.f;
+
+	DrawBoxFade_t() = default;
+	DrawBoxFade_t(const Vec3& vOrigin, const Vec3& vMins, const Vec3& vMaxs, const Vec3& vAngles, float flTime, const Color_t& tEdge, const Color_t& tFace, bool bZBuffer = true)
+		: DrawBox_t(vOrigin, vMins, vMaxs, vAngles, flTime, tEdge, tFace, bZBuffer)
+		, m_flFadeStartTime(flTime)
+		, m_flDrawTime(flTime)
+	{
+	}
+};
+
+struct DrawLineFade_t
+{
+	std::pair<Vec3, Vec3> m_paOrigin = {};
+	float m_flTime = 0.f;        // end time
+	Color_t m_tColor = {};
+	bool m_bZBuffer = false;
+};
+
+struct DrawBoxFadeBullet_t : public DrawBox_t
+{
+	float m_flTime = 0.f;        // end time (same as line)
+};
+
 struct Sightline_t
 {
 	Vec3 m_vStart = {};
@@ -25,6 +52,7 @@ struct PendingHitData_t
 {
 	matrix3x4 m_aBones[MAXSTUDIOBONES] = {};
 	int m_nAimedHitbox = -1;
+	std::vector<int> m_vAimedHitboxes = {};
 	float m_flTime = 0.f; // curtime when registered, for stale-entry expiry
 };
 
@@ -79,6 +107,7 @@ public:
 #endif
 
 	std::vector<DrawBox_t> GetHitboxes(matrix3x4* aBones, CBaseAnimating* pEntity, std::vector<int> vHitboxes = {}, int iTarget = -1);
+	std::vector<DrawBox_t> GetHitboxes(matrix3x4* aBones, CBaseAnimating* pEntity, std::vector<int> vHitboxes, std::vector<int> vTargets);
 	void DrawEffects();
 	void DrawHitboxes(int iStore = 0);
 
@@ -91,7 +120,14 @@ public:
 
 	void CreateMove(CTFPlayer* pLocal, CTFWeaponBase* pWeapon);
 
-	void RegisterPendingHit(int iEntIndex, matrix3x4* aBones, int nAimedHitbox);
+	void RegisterPendingHit(int iEntIndex, matrix3x4* aBones, int nAimedHitbox, std::vector<int> vAimedHitboxes);
+
+	void ClearFadeHitboxes();
+	void AddFadeHitbox(const Vec3& vOrigin, const Vec3& vMins, const Vec3& vMaxs, const Vec3& vAngles, float flTime, const Color_t& tEdge, const Color_t& tFace, bool bZBuffer = true);
+
+	std::vector<DrawBoxFadeBullet_t> m_vBulletBoxes = {};   // Only for bullet tracer boxes
+
+	std::vector<DrawLineFade_t> m_vLines = {};
 };
 
 ADD_FEATURE(CVisuals, Visuals);

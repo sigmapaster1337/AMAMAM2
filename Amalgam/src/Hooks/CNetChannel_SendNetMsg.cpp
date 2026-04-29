@@ -27,27 +27,36 @@ MAKE_HOOK(CNetChannel_SendNetMsg, S::CNetChannel_SendNetMsg(), bool,
 				if (F::Backtrack.m_flSentInterp != -1.f)
 					strncpy_s(localCvar->Value, std::to_string(F::Backtrack.m_flSentInterp).c_str(), MAX_OSPATH);
 				if (Vars::Misc::Game::AntiCheatCompatibility.Value)
-				{ try {
-					float flValue = std::stof(localCvar->Value);
-					strncpy_s(localCvar->Value, std::to_string(std::min(flValue, 0.1f)).c_str(), MAX_OSPATH);
-				} catch (...) {}; }
+				{
+					try {
+						float flValue = std::stof(localCvar->Value);
+						strncpy_s(localCvar->Value, std::to_string(std::min(flValue, 0.1f)).c_str(), MAX_OSPATH);
+					}
+					catch (...) {};
+				}
 				break;
 			case FNV1A::Hash32Const("cl_cmdrate"):
 				if (F::Misc.m_iWishCmdrate != -1)
 					strncpy_s(localCvar->Value, std::to_string(F::Misc.m_iWishCmdrate).c_str(), MAX_OSPATH);
 				if (Vars::Misc::Game::AntiCheatCompatibility.Value)
-				{ try {
-					int iValue = std::stof(localCvar->Value);
-					strncpy_s(localCvar->Value, std::to_string(std::max(iValue, 10)).c_str(), MAX_OSPATH);
-				} catch (...) {}; }
+				{
+					try {
+						int iValue = std::stof(localCvar->Value);
+						strncpy_s(localCvar->Value, std::to_string(std::max(iValue, 10)).c_str(), MAX_OSPATH);
+					}
+					catch (...) {};
+				}
 				break;
 			case FNV1A::Hash32Const("cl_updaterate"):
 				if (F::Misc.m_iWishUpdaterate != -1)
 					strncpy_s(localCvar->Value, std::to_string(F::Misc.m_iWishUpdaterate).c_str(), MAX_OSPATH);
 				break;
 			case FNV1A::Hash32Const("cl_interp_ratio"):
-			case FNV1A::Hash32Const("cl_interpolate"):
 				strncpy_s(localCvar->Value, "1", MAX_OSPATH);
+				break;
+			case FNV1A::Hash32Const("cl_interpolate"):
+				strncpy_s(localCvar->Value, "0", MAX_OSPATH);
+				break;
 			}
 
 			if (Vars::Debug::Logging.Value)
@@ -93,6 +102,9 @@ MAKE_HOOK(CNetChannel_SendNetMsg, S::CNetChannel_SendNetMsg(), bool,
 			case FNV1A::Hash32Const("cl_interp_ratio"):
 				sValue = "1";
 				break;
+			case FNV1A::Hash32Const("cl_interpolate"):
+				sValue = "0";
+				break;
 			case FNV1A::Hash32Const("cl_cmdrate"):
 				if (F::Misc.m_iWishCmdrate != -1)
 					sValue = std::to_string(F::Misc.m_iWishCmdrate);
@@ -112,7 +124,7 @@ MAKE_HOOK(CNetChannel_SendNetMsg, S::CNetChannel_SendNetMsg(), bool,
 				sValue = pConVar->m_pParent->m_pszDefaultValue;
 			}
 			pMsg[7] = uintptr_t(sValue.c_str());
-			
+
 			SDK::Output("Convar spoof", msg.ToString(), Vars::Menu::Theme::Accent.Value, Vars::Debug::Logging.Value);
 		}
 		break;
@@ -150,13 +162,13 @@ MAKE_HOOK(CNetChannel_SendNetMsg, S::CNetChannel_SendNetMsg(), bool,
 			}
 		}
 
-			const int iAllowedNewCommands = std::max(F::Ticks.m_iMaxUsrCmdProcessTicks - F::Ticks.m_iShiftedTicks, 0);
-			const int iCmdCount = pMsg->m_nNewCommands + pMsg->m_nBackupCommands - 3;
-			if (iCmdCount > iAllowedNewCommands)
-			{
-				SDK::Output("clc_Move", std::format("{:d} sent <{:d} | {:d}>, max was {:d}.", iCmdCount + 3, pMsg->m_nNewCommands, pMsg->m_nBackupCommands, iAllowedNewCommands).c_str(), { 255, 0, 0, 255 });
-				F::Ticks.m_iDeficit = iCmdCount - iAllowedNewCommands;
-			}
+		const int iAllowedNewCommands = std::max(F::Ticks.m_iMaxUsrCmdProcessTicks - F::Ticks.m_iShiftedTicks, 0);
+		const int iCmdCount = pMsg->m_nNewCommands + pMsg->m_nBackupCommands - 3;
+		if (iCmdCount > iAllowedNewCommands)
+		{
+			SDK::Output("clc_Move", std::format("{:d} sent <{:d} | {:d}>, max was {:d}.", iCmdCount + 3, pMsg->m_nNewCommands, pMsg->m_nBackupCommands, iAllowedNewCommands).c_str(), { 255, 0, 0, 255 });
+			F::Ticks.m_iDeficit = iCmdCount - iAllowedNewCommands;
+		}
 
 		return true;
 	}

@@ -1,4 +1,4 @@
-#include "Visuals.h"
+﻿#include "Visuals.h"
 
 #include "../Aimbot/Aimbot.h"
 #include "../Aimbot/AimbotProjectile/AimbotProjectile.h"
@@ -47,7 +47,7 @@ void CVisuals::ProjectileTrace(CTFPlayer* pPlayer, CTFWeaponBase* pWeapon, const
 {
 	if (bInterp)
 		F::CameraWindow.m_bShouldDraw = false;
-	
+
 	if (bInterp
 		? !Vars::Visuals::Simulation::TrajectoryPath.Value && !Vars::Visuals::Simulation::ProjectileCamera.Value && !(Vars::Visuals::Simulation::SplashRadius.Value & Vars::Visuals::Simulation::SplashRadiusEnum::Enabled)
 		: !Vars::Visuals::Simulation::ShotPath.Value)
@@ -368,7 +368,7 @@ void CVisuals::DrawDebugInfo(CTFPlayer* pLocal)
 					}
 					return sReturn.empty() ? "NONE" : sReturn;
 				}()
-				).c_str());
+					).c_str());
 			H::Draw.StringOutlined(fFont, x, y += nTall, Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value, ALIGN_TOPLEFT, std::format("Tickcount: {}, Command: {}", pCmd->tick_count, pCmd->command_number).c_str());
 		}
 		Vec3 vOrigin = pLocal->m_vecOrigin();
@@ -380,7 +380,7 @@ void CVisuals::DrawDebugInfo(CTFPlayer* pLocal)
 		//H::Draw.StringOutlined(fFont, x, y += nTall, Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value, ALIGN_TOPLEFT, std::format("Ticks: {}, {}", F::Ticks.m_iShiftedTicks, F::Ticks.m_iShiftedGoal).c_str());
 		//H::Draw.StringOutlined(fFont, x, y += nTall, Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value, ALIGN_TOPLEFT, std::format("Round state: {}, {}, {}", SDK::GetRoundState(), SDK::GetWinningTeam(), I::EngineClient->IsPlayingDemo()).c_str());
 		//H::Draw.StringOutlined(fFont, x, y += nTall, Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value, ALIGN_TOPLEFT, std::format("Entities: {} ({}, {})", I::ClientEntityList->GetMaxEntities(), I::ClientEntityList->GetHighestEntityIndex(), I::ClientEntityList->NumberOfEntities(false)).c_str());
-	
+
 		/*
 		if (pWeapon)
 		{
@@ -453,7 +453,7 @@ void CVisuals::ClearDebugText()
 
 
 
-std::vector<DrawBox_t> CVisuals::GetHitboxes(matrix3x4* aBones, CBaseAnimating* pEntity, std::vector<int> vHitboxes, int iTarget)
+std::vector<DrawBox_t> CVisuals::GetHitboxes(matrix3x4* aBones, CBaseAnimating* pEntity, std::vector<int> vHitboxes, std::vector<int> vTargets)
 {
 	if (!Vars::Colors::BoneHitboxEdge.Value.a && !Vars::Colors::BoneHitboxFace.Value.a && !Vars::Colors::BoneHitboxEdgeIgnoreZ.Value.a && !Vars::Colors::BoneHitboxFaceIgnoreZ.Value.a
 		&& !Vars::Colors::TargetHitboxEdge.Value.a && !Vars::Colors::TargetHitboxFace.Value.a && !Vars::Colors::TargetHitboxEdgeIgnoreZ.Value.a && !Vars::Colors::TargetHitboxFaceIgnoreZ.Value.a)
@@ -479,7 +479,7 @@ std::vector<DrawBox_t> CVisuals::GetHitboxes(matrix3x4* aBones, CBaseAnimating* 
 		auto pBox = pSet->pHitbox(nHitbox);
 		if (!pBox) continue;
 
-		bool bTargeted = nHitbox == iTarget;
+		bool bTargeted = std::find(vTargets.begin(), vTargets.end(), nHitbox) != vTargets.end();
 		Vec3 vAngle; Math::MatrixAngles(aBones[pBox->bone], vAngle);
 		Vec3 vOrigin; Math::GetMatrixOrigin(aBones[pBox->bone], vOrigin);
 		Vec3 vMins = pBox->bbmin * pEntity->m_flModelScale();
@@ -511,14 +511,72 @@ std::vector<DrawBox_t> CVisuals::GetHitboxes(matrix3x4* aBones, CBaseAnimating* 
 	return vBoxes;
 }
 
+std::vector<DrawBox_t> CVisuals::GetHitboxes(matrix3x4* aBones, CBaseAnimating* pEntity, std::vector<int> vHitboxes, int iTarget)
+{
+	std::vector<int> vTargets = iTarget >= 0 ? std::vector<int>{iTarget} : std::vector<int>{};
+	return GetHitboxes(aBones, pEntity, vHitboxes, vTargets);
+}
+
 void CVisuals::DrawEffects()
 {
-	for (auto& tLine : G::LineStorage)
+	// === Bullet Tracers with smooth fadeout ===
+	for (auto it = m_vLines.begin(); it != m_vLines.end();)
 	{
-		if (tLine.m_flTime < I::GlobalVars->curtime)
-			continue;
+		auto& tLine = *it;
+		float flRemaining = tLine.m_flTime - I::GlobalVars->curtime;
 
-		H::Draw.RenderLine(tLine.m_paOrigin.first, tLine.m_paOrigin.second, tLine.m_tColor, tLine.m_bZBuffer);
+		if (flRemaining <= 0.f)
+		{
+			it = m_vLines.erase(it);
+			continue;
+		}
+
+		float flAlphaFactor = 1.f;
+		const float flFadeout = Vars::Visuals::Line::Fadeout.Value;
+
+		if (flFadeout > 0.f && flRemaining < flFadeout)
+			flAlphaFactor = flRemaining / flFadeout;   // smooth fade from 1.0 → 0.0
+
+		Color_t tFaded = tLine.m_tColor;
+		tFaded.a = static_cast<byte>(tFaded.a * flAlphaFactor);
+
+		H::Draw.RenderLine(tLine.m_paOrigin.first, tLine.m_paOrigin.second, tFaded, tLine.m_bZBuffer);
+
+		++it;
+	}
+	// === Only Bullet Tracer Boxes - smooth fade with their lines ===
+	for (auto it = m_vBulletBoxes.begin(); it != m_vBulletBoxes.end();)
+	{
+		auto& tBox = *it;
+		float flRemaining = tBox.m_flTime - I::GlobalVars->curtime;
+
+		if (flRemaining <= 0.f)
+		{
+			it = m_vBulletBoxes.erase(it);
+			continue;
+		}
+
+		float flAlphaFactor = 1.f;
+		const float flFadeout = Vars::Visuals::Line::Fadeout.Value;
+
+		if (flFadeout > 0.f && flRemaining < flFadeout)
+			flAlphaFactor = flRemaining / flFadeout;   // smooth fade
+
+		Color_t tEdgeFaded = tBox.m_tColorEdge;
+		if (tEdgeFaded.a)
+			tEdgeFaded.a = static_cast<byte>(tEdgeFaded.a * flAlphaFactor);
+
+		Color_t tFaceFaded = tBox.m_tColorFace;
+		if (tFaceFaded.a)
+			tFaceFaded.a = static_cast<byte>(tFaceFaded.a * flAlphaFactor);
+
+		if (tFaceFaded.a)
+			H::Draw.RenderBox(tBox.m_vOrigin, tBox.m_vMins, tBox.m_vMaxs, tBox.m_vAngles, tFaceFaded, tBox.m_bZBuffer);
+
+		if (tEdgeFaded.a)
+			H::Draw.RenderWireframeBox(tBox.m_vOrigin, tBox.m_vMins, tBox.m_vMaxs, tBox.m_vAngles, tEdgeFaded, tBox.m_bZBuffer);
+
+		++it;
 	}
 	for (auto& tPath : G::PathStorage)
 	{
@@ -594,20 +652,94 @@ void CVisuals::DrawEffects()
 }
 
 static std::vector<DrawBox_t> s_vHitboxes = {}, s_vLocalHitboxes = {};
+static std::vector<DrawBoxFade_t> s_vHitboxesFade = {};
+static std::vector<DrawBox_t> s_vHitboxesPersistent = {};
 static bool s_bHitboxes = false, s_bBounds = false, s_bBoxesHeadOnly = false, s_bBoxesNoAngles = false;
 void CVisuals::DrawHitboxes(int iStore)
 {
-	if (!Vars::Debug::DrawHitboxes.Value)
-		return;
+	float flCurrentTime = I::GlobalVars->curtime;
 
 	switch (iStore)
 	{
 	case 0:
 	{
-		for (auto& tBox : s_vHitboxes)
-			H::Draw.RenderWireframeBox(tBox.m_vOrigin, tBox.m_vMins, tBox.m_vMaxs, tBox.m_vAngles, tBox.m_tColorEdge, tBox.m_bZBuffer);
-		for (auto& tBox : s_vLocalHitboxes)
-			H::Draw.RenderWireframeBox(tBox.m_vOrigin, tBox.m_vMins, tBox.m_vMaxs, tBox.m_vAngles, tBox.m_tColorEdge, tBox.m_bZBuffer);
+		// Draw fading hitboxes FIRST (so they don't get covered by debug hitboxes)
+		if (Vars::Colors::HitboxFade.Value && !s_vHitboxesFade.empty())
+		{
+			float flFadeSpeed = Vars::Colors::HitboxFadeSpeed.Value;
+
+			for (auto it = s_vHitboxesFade.begin(); it != s_vHitboxesFade.end();)
+			{
+				auto& tBox = *it;
+
+				// Remove expired hitboxes
+				if (tBox.m_flDrawTime < flCurrentTime)
+				{
+					it = s_vHitboxesFade.erase(it);
+					continue;
+				}
+
+				// Calculate fade alpha - time left multiplied by fade speed
+				float flTimeLeft = tBox.m_flDrawTime - flCurrentTime;
+				float flFadeAlpha = std::clamp(flTimeLeft * flFadeSpeed, 0.f, 1.f);
+
+				// Apply fade to edge color (both ignore-Z and regular)
+				Color_t tEdgeFaded = tBox.m_tColorEdge;
+				if (tEdgeFaded.a)
+					tEdgeFaded.a = static_cast<int>(tEdgeFaded.a * flFadeAlpha);
+
+				// Apply fade to face color
+				Color_t tFaceFaded = tBox.m_tColorFace;
+				if (tFaceFaded.a)
+					tFaceFaded.a = static_cast<int>(tFaceFaded.a * flFadeAlpha);
+
+				// Draw faded hitbox - face first (if it has alpha)
+				if (tFaceFaded.a)
+					H::Draw.RenderBox(tBox.m_vOrigin, tBox.m_vMins, tBox.m_vMaxs, tBox.m_vAngles, tFaceFaded, tBox.m_bZBuffer);
+
+				// Draw edge on top (if it has alpha)
+				if (tEdgeFaded.a)
+					H::Draw.RenderWireframeBox(tBox.m_vOrigin, tBox.m_vMins, tBox.m_vMaxs, tBox.m_vAngles, tEdgeFaded, tBox.m_bZBuffer);
+
+				++it;
+			}
+		}
+
+		// Draw persistent hitboxes (non-fading, from on-hit events)
+		for (auto it = s_vHitboxesPersistent.begin(); it != s_vHitboxesPersistent.end();)
+		{
+			if (it->m_flTime < flCurrentTime)
+			{
+				it = s_vHitboxesPersistent.erase(it);
+				continue;
+			}
+
+			// Draw edge
+			if (it->m_tColorEdge.a)
+				H::Draw.RenderWireframeBox(it->m_vOrigin, it->m_vMins, it->m_vMaxs, it->m_vAngles, it->m_tColorEdge, it->m_bZBuffer);
+			// Draw face
+			if (it->m_tColorFace.a)
+				H::Draw.RenderBox(it->m_vOrigin, it->m_vMins, it->m_vMaxs, it->m_vAngles, it->m_tColorFace, it->m_bZBuffer);
+
+			++it;
+		}
+
+		// Draw regular hitboxes from debug (only if debug is enabled)
+		if (Vars::Debug::DrawHitboxes.Value)
+		{
+			for (auto& tBox : s_vHitboxes)
+			{
+				if (tBox.m_flTime < flCurrentTime)
+					continue;
+				H::Draw.RenderWireframeBox(tBox.m_vOrigin, tBox.m_vMins, tBox.m_vMaxs, tBox.m_vAngles, tBox.m_tColorEdge, tBox.m_bZBuffer);
+			}
+			for (auto& tBox : s_vLocalHitboxes)
+			{
+				if (tBox.m_flTime < flCurrentTime)
+					continue;
+				H::Draw.RenderWireframeBox(tBox.m_vOrigin, tBox.m_vMins, tBox.m_vMaxs, tBox.m_vAngles, tBox.m_tColorEdge, tBox.m_bZBuffer);
+			}
+		}
 		break;
 	}
 	case 1:
@@ -654,7 +786,18 @@ void CVisuals::DrawHitboxes(int iStore)
 			tBox.m_tColorEdge = { 255, 255, 255, 255 };
 		s_vLocalHitboxes.insert(s_vLocalHitboxes.end(), vBoxes.begin(), vBoxes.end());
 	}
+	break;
 	}
+}
+
+void CVisuals::ClearFadeHitboxes()
+{
+	s_vHitboxesFade.clear();
+}
+
+void CVisuals::AddFadeHitbox(const Vec3& vOrigin, const Vec3& vMins, const Vec3& vMaxs, const Vec3& vAngles, float flTime, const Color_t& tEdge, const Color_t& tFace, bool bZBuffer)
+{
+	s_vHitboxesFade.emplace_back(vOrigin, vMins, vMaxs, vAngles, flTime, tEdge, tFace, bZBuffer);
 }
 
 MAKE_HOOK(CBaseAnimating_DrawServerHitboxes, S::CBaseAnimating_DrawServerHitboxes(), void,
@@ -784,11 +927,12 @@ void CVisuals::ThirdPerson(CTFPlayer* pLocal, CViewSetup* pView)
 	}
 }
 
-void CVisuals::RegisterPendingHit(int iEntIndex, matrix3x4* aBones, int nAimedHitbox)
+void CVisuals::RegisterPendingHit(int iEntIndex, matrix3x4* aBones, int nAimedHitbox, std::vector<int> vAimedHitboxes)
 {
 	auto& data = m_mPendingHits[iEntIndex];
 	memcpy(data.m_aBones, aBones, sizeof(matrix3x4) * MAXSTUDIOBONES);
 	data.m_nAimedHitbox = nAimedHitbox;
+	data.m_vAimedHitboxes = std::move(vAimedHitboxes);
 	data.m_flTime = I::GlobalVars->curtime;
 }
 
@@ -816,6 +960,49 @@ void CVisuals::Event(IGameEvent* pEvent, uint32_t uHash)
 		case EWeaponType::HITSCAN:
 		case EWeaponType::MELEE:
 		{
+			if (!bBones && !bBounds)
+				break;
+
+			// FORCE melee to use bounding boxes (like projectiles), ignore bones settings
+			if (G::PrimaryWeaponType == EWeaponType::MELEE)
+			{
+				// Always draw bounding box for melee, regardless of bBounds setting
+				float flDrawTime = I::GlobalVars->curtime + Vars::Visuals::Hitbox::DrawDuration.Value;
+
+				if (Vars::Colors::HitboxFade.Value)
+				{
+					// Use fade storage for melee bounding boxes
+					Color_t tEdge = Vars::Colors::BoundHitboxEdge.Value;
+					Color_t tFace = Vars::Colors::BoundHitboxFace.Value;
+
+					// Also add ignore-Z version if enabled
+					if (Vars::Colors::BoundHitboxEdgeIgnoreZ.Value.a || Vars::Colors::BoundHitboxFaceIgnoreZ.Value.a)
+					{
+						AddFadeHitbox(pEntity->m_vecOrigin(), pEntity->m_vecMins(), pEntity->m_vecMaxs(), Vec3(),
+							flDrawTime, Vars::Colors::BoundHitboxEdgeIgnoreZ.Value, Vars::Colors::BoundHitboxFaceIgnoreZ.Value, false);
+					}
+
+					// Add regular (Z-buffer enabled) version
+					if (tEdge.a || tFace.a)
+					{
+						AddFadeHitbox(pEntity->m_vecOrigin(), pEntity->m_vecMins(), pEntity->m_vecMaxs(), Vec3(),
+							flDrawTime, tEdge, tFace, true);
+					}
+				}
+				else
+				{
+					// Regular storage (no fade)
+					if (Vars::Colors::BoundHitboxEdgeIgnoreZ.Value.a || Vars::Colors::BoundHitboxFaceIgnoreZ.Value.a)
+						G::BoxStorage.emplace_back(pEntity->m_vecOrigin(), pEntity->m_vecMins(), pEntity->m_vecMaxs(), Vec3(),
+							flDrawTime, Vars::Colors::BoundHitboxEdgeIgnoreZ.Value, Vars::Colors::BoundHitboxFaceIgnoreZ.Value, false);
+					if (Vars::Colors::BoundHitboxEdge.Value.a || Vars::Colors::BoundHitboxFace.Value.a)
+						G::BoxStorage.emplace_back(pEntity->m_vecOrigin(), pEntity->m_vecMins(), pEntity->m_vecMaxs(), Vec3(),
+							flDrawTime, Vars::Colors::BoundHitboxEdge.Value, Vars::Colors::BoundHitboxFace.Value, true);
+				}
+				break;  // Exit - don't even try to draw bones for melee
+			}
+
+			// HITSCAN only from here - use bone hitboxes
 			if (!bBones)
 				return;
 
@@ -832,10 +1019,20 @@ void CVisuals::Event(IGameEvent* pEvent, uint32_t uHash)
 				break;
 			}
 
-			auto vBoxes = GetHitboxes(data.m_aBones, pEntity, {}, data.m_nAimedHitbox);
-			G::BoxStorage.insert(G::BoxStorage.end(), vBoxes.begin(), vBoxes.end());
+			auto vBoxes = GetHitboxes(data.m_aBones, pEntity, {}, data.m_vAimedHitboxes);
+			if (Vars::Colors::HitboxFade.Value)
+			{
+				for (auto& tBox : vBoxes)
+					AddFadeHitbox(tBox.m_vOrigin, tBox.m_vMins, tBox.m_vMaxs, tBox.m_vAngles,
+						tBox.m_flTime, tBox.m_tColorEdge, tBox.m_tColorFace, tBox.m_bZBuffer);
+			}
+			else
+			{
+				// Store in persistent storage instead of G::BoxStorage
+				s_vHitboxesPersistent.insert(s_vHitboxesPersistent.end(), vBoxes.begin(), vBoxes.end());
+			}
 
-			m_mPendingHits.erase(it); // consume � one player_hurt per shot
+			m_mPendingHits.erase(it); // consume – one player_hurt per shot
 
 			return;
 		}
@@ -938,6 +1135,9 @@ void CVisuals::Event(IGameEvent* pEvent, uint32_t uHash)
 		G::SphereStorage.clear();
 		G::SweptStorage.clear();
 		G::TriangleStorage.clear();
+		m_vLines.clear();
+		m_vBulletBoxes.clear();
+		s_vHitboxesPersistent.clear();
 	}
 	}
 }
@@ -1315,7 +1515,7 @@ void CVisuals::CreateMove(CTFPlayer* pLocal, CTFWeaponBase* pWeapon)
 
 	if (Vars::Visuals::Effects::SpellFootsteps.Value && (F::Ticks.m_bDoubletap || F::Ticks.m_bWarp))
 		pLocal->FireEvent(pLocal->GetAbsOrigin(), QAngle(), 7001, nullptr);
-	
+
 	static uint32_t iOldMedigunBeam = 0, iOldMedigunCharge = 0;
 	uint32_t iNewMedigunBeam = FNV1A::Hash32(Vars::Visuals::Effects::MedigunBeam.Value.c_str()), iNewMedigunCharge = FNV1A::Hash32(Vars::Visuals::Effects::MedigunCharge.Value.c_str());
 	if (iOldMedigunBeam != iNewMedigunBeam || iOldMedigunCharge != iNewMedigunCharge)

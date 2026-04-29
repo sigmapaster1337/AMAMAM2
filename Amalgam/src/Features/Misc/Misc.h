@@ -38,8 +38,17 @@ public:
 	void UnlockAchievements();
 	void LockAchievements();
 
+	void DoubleTickBase();
+	void DrawDoubleTickbase(CTFPlayer* pLocal);
+
 	int m_iWishCmdrate = -1;
 	int m_iWishUpdaterate = -1;
+
+	int m_iDoubleTickbaseCharge = 0;
+	int m_iLastInSequence = 0;
+	bool m_bDoubleTickbaseCharging = false;
+	bool m_bLastDoubleTickbaseBind = false;
+	bool m_bDoubleTickbaseSpent = false;
 };
 
 ADD_FEATURE(CMisc, Misc);

@@ -7,6 +7,7 @@
 #include "../Features/Misc/Misc.h"
 #include "../Features/NoSpread/NoSpread.h"
 #include "../Features/NoSpread/NoSpreadHitscan/NoSpreadHitscan.h"
+#include "../Features/Misc/ChatTranslator/ChatTranslator.h"
 #include "../Features/PacketManip/PacketManip.h"
 #include "../Features/Resolver/Resolver.h"
 #include "../Features/Ticks/Ticks.h"
@@ -246,21 +247,22 @@ MAKE_HOOK(CHLClient_CreateMove, U::Memory.GetVirtual(I::Client, 21), void,
 	I::Prediction->Update(I::ClientState->m_nDeltaTick, I::ClientState->m_nDeltaTick > 0, I::ClientState->last_command_ack, I::ClientState->lastoutgoingcommand + I::ClientState->chokedcommands);
 
 	UpdateInfo(pLocal, pWeapon, pCmd);
-		F::Spectate.CreateMove(pCmd);
-		F::Backtrack.CreateMove(pLocal, pWeapon, pCmd);
-		F::Misc.RunPre(pLocal, pCmd);
+	F::Spectate.CreateMove(pCmd);
+	F::Backtrack.CreateMove(pLocal, pWeapon, pCmd);
+	F::Misc.RunPre(pLocal, pCmd);
+	F::ChatTranslator.Update();
 	F::Ticks.Start(pLocal, pCmd);
-		F::Aimbot.Run(pLocal, pWeapon, pCmd);
+	F::Aimbot.Run(pLocal, pWeapon, pCmd);
 	F::Ticks.End(pLocal, pCmd);
-		F::CritHack.Run(pLocal, pWeapon, pCmd);
-		F::NoSpread.Run(pLocal, pWeapon, pCmd);
-		F::Resolver.CreateMove();
-		F::Misc.RunPost(pLocal, pCmd);
-		F::PacketManip.Run(pLocal, pWeapon, pCmd, pSendPacket);
-		F::Visuals.CreateMove(pLocal, pWeapon);
-		F::Ticks.CreateMove(pLocal, pWeapon, pCmd, pSendPacket);
-		F::AntiAim.Run(pLocal, pWeapon, pCmd, *pSendPacket);
-		F::NoSpreadHitscan.AskForPlayerPerf();
+	F::CritHack.Run(pLocal, pWeapon, pCmd);
+	F::NoSpread.Run(pLocal, pWeapon, pCmd);
+	F::Resolver.CreateMove();
+	F::Misc.RunPost(pLocal, pCmd);
+	F::PacketManip.Run(pLocal, pWeapon, pCmd, pSendPacket);
+	F::Visuals.CreateMove(pLocal, pWeapon);
+	F::Ticks.CreateMove(pLocal, pWeapon, pCmd, pSendPacket);
+	F::AntiAim.Run(pLocal, pWeapon, pCmd, *pSendPacket);
+	F::NoSpreadHitscan.AskForPlayerPerf();
 	F::EnginePrediction.End(pLocal, pCmd);
 
 	AntiCheatCompatibility(pCmd, pSendPacket);

@@ -19,6 +19,7 @@ struct Target_t
 	float m_flDistTo = std::numeric_limits<float>::max();
 	int m_nPriority = 0;
 	int m_nAimedHitbox = -1;
+	std::vector<int> m_vAimedHitboxes = {};
 
 	TickRecord* m_pRecord = nullptr;
 	bool m_bBacktrack = false;
@@ -33,10 +34,10 @@ class CAimbotGlobal
 public:
 	std::vector<Target_t> ManageTargets(std::vector<Target_t>(*GetTargets)(CTFPlayer* pLocal, CTFWeaponBase* pWeapon), CTFPlayer* pLocal, CTFWeaponBase* pWeapon,
 		int iMethod = Vars::Aimbot::General::TargetSelection.Value, int iMaxTargets = Vars::Aimbot::General::MaxTargets.Value);
-	void SortTargetsPre(std::vector<Target_t>& vTargets, int iMethod);
-	void SortTargetsPost(std::vector<Target_t>& vTargets, int iMethod);
+	void SortTargets(std::vector<Target_t>&, int iMethod);
+	void SortPriority(std::vector<Target_t>&);
 
-	bool PlayerBoneInFOV(CTFPlayer* pTarget, Vec3 vLocalPos, Vec3 vLocalAngles, float& flFOVTo, Vec3& vPos, Vec3& vAngleTo, int iHitboxes = Vars::Aimbot::Hitscan::HitboxesEnum::Head | Vars::Aimbot::Hitscan::HitboxesEnum::Body | Vars::Aimbot::Hitscan::HitboxesEnum::Pelvis | Vars::Aimbot::Hitscan::HitboxesEnum::Arms | Vars::Aimbot::Hitscan::HitboxesEnum::Legs);
+	bool PlayerBoneInFOV(CTFPlayer* pTarget, Vec3 vLocalPos, Vec3 vLocalAngles, float& flFOVTo, Vec3& vPos, Vec3& vAngleTo, float flFOV = Vars::Aimbot::General::AimFOV.Value, int iHitboxes = Vars::Aimbot::Hitscan::HitboxesEnum::Head | Vars::Aimbot::Hitscan::HitboxesEnum::Body | Vars::Aimbot::Hitscan::HitboxesEnum::Pelvis | Vars::Aimbot::Hitscan::HitboxesEnum::Arms | Vars::Aimbot::Hitscan::HitboxesEnum::Legs);
 	bool IsHitboxValid(CBaseEntity* pEntity, int nHitbox, int iHitboxes = Vars::Aimbot::Hitscan::HitboxesEnum::Head | Vars::Aimbot::Hitscan::HitboxesEnum::Body | Vars::Aimbot::Hitscan::HitboxesEnum::Pelvis | Vars::Aimbot::Hitscan::HitboxesEnum::Arms | Vars::Aimbot::Hitscan::HitboxesEnum::Legs);
 	bool IsHitboxValid(int nHitbox, int iHitboxes = Vars::Aimbot::Projectile::HitboxesEnum::Head | Vars::Aimbot::Projectile::HitboxesEnum::Body | Vars::Aimbot::Projectile::HitboxesEnum::Feet);
 	bool ShouldMultipoint(CBaseEntity* pEntity = nullptr, int nHitbox = -1, int iHitboxes = Vars::Aimbot::Hitscan::HitboxesEnum::Head | Vars::Aimbot::Hitscan::HitboxesEnum::Body | Vars::Aimbot::Hitscan::HitboxesEnum::Pelvis | Vars::Aimbot::Hitscan::HitboxesEnum::Arms | Vars::Aimbot::Hitscan::HitboxesEnum::Legs);

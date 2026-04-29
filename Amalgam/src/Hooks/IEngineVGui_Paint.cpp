@@ -13,6 +13,7 @@
 #include "../Features/Visuals/CameraWindow/CameraWindow.h"
 #include "../Features/Visuals/Notifications/Notifications.h"
 #include "../Features/Aimbot/AutoHeal/AutoHeal.h"
+#include "../Features/Misc/Misc.h"
 
 MAKE_HOOK(IEngineVGui_Paint, U::Memory.GetVirtual(I::EngineVGui, 14), void,
 	void* rcx, int iMode)
@@ -47,6 +48,7 @@ MAKE_HOOK(IEngineVGui_Paint, U::Memory.GetVirtual(I::EngineVGui, 14), void,
 			F::SpectatorList.Draw(pLocal);
 			F::CritHack.Draw(pLocal);
 			F::Ticks.Draw(pLocal);
+			F::Misc.DrawDoubleTickbase(pLocal);
 			F::Visuals.DrawDebugInfo(pLocal);
 		}
 		H::Draw.End();

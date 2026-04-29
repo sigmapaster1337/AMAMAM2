@@ -3,19 +3,27 @@
 
 //#define SEEDPRED_DEBUG
 
+struct PerfSample_t
+{
+	double dDelta;	// serverTime - (requestTime + responseTime)/2
+	double dRTT;	// responseTime - requestTime
+};
+
 class CNoSpreadHitscan
 {
 private:
 	int GetSeed(CUserCmd* pCmd);
 	float CalcMantissaStep(float flV);
 	std::string GetFormat(int iServerTime);
+	void RecomputeDelta(); // median
 
 	bool m_bWaitingForPlayerPerf = false;
 	int m_bSynced = 0;
 	double m_dRequestTime = 0.0;
+	double m_dResponseTime = 0.0;
 	float m_flServerTime = 0.f;
 	double m_dTimeDelta = 0.0;
-	std::deque<double> m_vTimeDeltas = {};
+	std::deque<PerfSample_t> m_vSamples = {};
 
 public:
 	void Reset();

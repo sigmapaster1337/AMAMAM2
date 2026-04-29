@@ -1,4 +1,4 @@
-#include "Misc.h"
+﻿#include "Misc.h"
 
 #include "../Backtrack/Backtrack.h"
 #include "../Ticks/Ticks.h"
@@ -26,6 +26,7 @@ void CMisc::RunPre(CTFPlayer* pLocal, CUserCmd* pCmd)
 	AutoPeek(pLocal, pCmd);
 	MovementLock(pLocal, pCmd);
 	BreakJump(pLocal, pCmd);
+	DoubleTickBase();
 }
 
 void CMisc::RunPost(CTFPlayer* pLocal, CUserCmd* pCmd)
@@ -464,9 +465,9 @@ int CMisc::AntiBackstab(CTFPlayer* pLocal, CUserCmd* pCmd, bool bSendPacket)
 		return 0;
 
 	std::sort(vTargets.begin(), vTargets.end(), [&](const auto& a, const auto& b) -> bool
-	{
-		return pLocal->GetCenter().DistToSqr(a.first) < pLocal->GetCenter().DistToSqr(b.first);
-	});
+		{
+			return pLocal->GetCenter().DistToSqr(a.first) < pLocal->GetCenter().DistToSqr(b.first);
+		});
 
 	auto& pTargetPos = vTargets.front();
 	switch (Vars::Misc::Automation::AntiBackstab.Value)
@@ -477,7 +478,7 @@ int CMisc::AntiBackstab(CTFPlayer* pLocal, CUserCmd* pCmd, bool bSendPacket)
 		vAngleTo.x = pCmd->viewangles.x;
 		SDK::FixMovement(pCmd, vAngleTo);
 		pCmd->viewangles = vAngleTo;
-		
+
 		return 1;
 	}
 	case Vars::Misc::Automation::AntiBackstabEnum::Pitch:
@@ -488,25 +489,25 @@ int CMisc::AntiBackstab(CTFPlayer* pLocal, CUserCmd* pCmd, bool bSendPacket)
 		if (!bCheater)
 		{
 			auto fTargetIsBehind = [&]()
-			{
-				const float flCompDist = PLAYER_ORIGIN_COMPRESSION / 2;
-				const float flSqCompDist = 0.0884f;
+				{
+					const float flCompDist = PLAYER_ORIGIN_COMPRESSION / 2;
+					const float flSqCompDist = 0.0884f;
 
-				Vec3 vToTarget = (pLocal->m_vecOrigin() - pTargetPos.first).To2D();
-				const float flDist = vToTarget.Normalize();
-				if (flDist < flSqCompDist)
-					return true;
+					Vec3 vToTarget = (pLocal->m_vecOrigin() - pTargetPos.first).To2D();
+					const float flDist = vToTarget.Normalize();
+					if (flDist < flSqCompDist)
+						return true;
 
-				const float flExtra = 2.f * flCompDist / flDist; // account for origin compression
-				float flPosVsTargetViewMinDot = 0.f - 0.0031f - flExtra;
+					const float flExtra = 2.f * flCompDist / flDist; // account for origin compression
+					float flPosVsTargetViewMinDot = 0.f - 0.0031f - flExtra;
 
-				Vec3 vTargetForward; Math::AngleVectors(pCmd->viewangles, &vTargetForward);
-				vTargetForward.Normalize2D();
+					Vec3 vTargetForward; Math::AngleVectors(pCmd->viewangles, &vTargetForward);
+					vTargetForward.Normalize2D();
 
-				const float flPosVsTargetViewDot = vToTarget.Dot(vTargetForward); // Behind?
+					const float flPosVsTargetViewDot = vToTarget.Dot(vTargetForward); // Behind?
 
-				return flPosVsTargetViewDot > flPosVsTargetViewMinDot;
-			};
+					return flPosVsTargetViewDot > flPosVsTargetViewMinDot;
+				};
 
 			if (!fTargetIsBehind())
 				return 0;
@@ -588,5 +589,87 @@ void CMisc::LockAchievements()
 			I::SteamUserStats->ClearAchievement(pAchievementMgr->GetAchievementByIndex(i)->GetName());
 		I::SteamUserStats->StoreStats();
 		I::SteamUserStats->RequestCurrentStats();
+	}
+}
+
+void CMisc::DoubleTickBase()
+{
+	auto pNetChan = reinterpret_cast<CNetChannel*>(I::EngineClient->GetNetChannelInfo());
+	if (!pNetChan)
+		return;
+
+	int inSeq = pNetChan->GetSequenceNr(FLOW_INCOMING);
+	int iMaxCharge = F::Ticks.m_iMaxShift;
+
+	bool bCurBind = Vars::Misc::Exploits::DoubleTickBase.Value;
+	bool bEdgePress = bCurBind && !m_bLastDoubleTickbaseBind;
+	m_bLastDoubleTickbaseBind = bCurBind;
+
+	// Reset spent flag when bind is released
+	if (!bCurBind) {
+		m_bDoubleTickbaseSpent = false;
+	}
+
+	// If fully charged and normal tickbase is also full and bind pressed → spend (reset charge)
+	if (bEdgePress && m_iDoubleTickbaseCharge >= iMaxCharge && F::Ticks.m_iShiftedTicks >= F::Ticks.m_iMaxShift) {
+		m_iDoubleTickbaseCharge = 0;
+		m_bDoubleTickbaseCharging = false;
+		m_bDoubleTickbaseSpent = true;
+	}
+
+	// Edge press starts charging (only if not recently spent and normal tickbase is NOT full)
+	if (bEdgePress && m_iDoubleTickbaseCharge < iMaxCharge && !m_bDoubleTickbaseSpent && F::Ticks.m_iShiftedTicks < F::Ticks.m_iMaxShift) {
+		m_bDoubleTickbaseCharging = true;
+	}
+
+	// Accumulate charge while charging flag is set (once started, continues to max regardless of normal tickbase)
+	if (m_bDoubleTickbaseCharging && !m_bDoubleTickbaseSpent) {
+		m_iDoubleTickbaseCharge = std::min(m_iDoubleTickbaseCharge + 1, iMaxCharge);
+		if (m_iDoubleTickbaseCharge >= iMaxCharge)
+			m_bDoubleTickbaseCharging = false;
+	}
+
+	if (bCurBind) {
+		pNetChan->m_nOutSequenceNr = inSeq - 1;
+	}
+
+	m_iLastInSequence = inSeq;
+}
+
+void CMisc::DrawDoubleTickbase(CTFPlayer* pLocal)
+{
+	if (!I::EngineClient->IsInGame() || !pLocal->IsAlive())
+		return;
+
+	// Only show indicator if a bind is configured for double tickbase
+	if (Vars::Misc::Exploits::DoubleTickBase.Map.size() <= 1)
+		return;
+
+	const DragBox_t dtPos = Vars::Menu::TicksDisplay.Value;
+	const auto& fFont = H::Fonts.GetFont(FONT_INDICATORS);
+
+	int iMaxCharge = F::Ticks.m_iMaxShift;
+	int iCharge = std::clamp(m_iDoubleTickbaseCharge, 0, iMaxCharge);
+	float flRatio = float(iCharge) / iMaxCharge;
+
+	int iSizeX = H::Draw.Scale(80, Scale_Round);
+	int iSizeY = H::Draw.Scale(8, Scale_Round);
+	int iPosX = dtPos.x - iSizeX / 2;
+	int iPosY = dtPos.y + 25 + H::Draw.Scale(40, Scale_Round); // Position below normal tickbase
+
+	H::Draw.StringOutlined(fFont, dtPos.x, iPosY - H::Draw.Scale(8, Scale_Round) - fFont.m_nTall,
+		Vars::Menu::Theme::Active.Value, Vars::Menu::Theme::Background.Value, ALIGN_TOP,
+		std::format("{} / {}", iCharge, iMaxCharge).c_str());
+
+	H::Draw.LineRect(iPosX, iPosY, iSizeX, iSizeY, Vars::Menu::Theme::Background.Value);
+
+	if (flRatio)
+	{
+		int iFillSizeX = iSizeX - 2;
+		int iFillSizeY = iSizeY - 2;
+		int iFillPosX = iPosX + 1;
+		int iFillPosY = iPosY + 1;
+
+		H::Draw.FillRect(iFillPosX, iFillPosY, iFillSizeX * flRatio, iFillSizeY, Vars::Menu::Theme::Accent.Value);
 	}
 }

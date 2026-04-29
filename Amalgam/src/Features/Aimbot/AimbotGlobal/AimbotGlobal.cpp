@@ -5,48 +5,21 @@
 #include "../../Ticks/Ticks.h"
 #include "../../EnginePrediction/EnginePrediction.h"
 
-std::vector<Target_t> CAimbotGlobal::ManageTargets(std::vector<Target_t>(*GetTargets)(CTFPlayer* pLocal, CTFWeaponBase* pWeapon), CTFPlayer* pLocal, CTFWeaponBase* pWeapon,
-	int iMethod, int iMaxTargets)
-{
-	auto vTargets = GetTargets(pLocal, pWeapon);
-	SortTargetsPre(vTargets, iMethod);
-	vTargets.resize(std::min(size_t(iMaxTargets), vTargets.size()));
-	SortTargetsPost(vTargets, iMethod);
-	return vTargets;
+void CAimbotGlobal::SortTargets(std::vector<Target_t>& vTargets, int iMethod)
+{	// Sort by preference
+	std::sort(vTargets.begin(), vTargets.end(), [&](const Target_t& a, const Target_t& b) -> bool
+		{
+			switch (iMethod)
+			{
+			case Vars::Aimbot::General::TargetSelectionEnum::FOV: return a.m_flFOVTo < b.m_flFOVTo;
+			case Vars::Aimbot::General::TargetSelectionEnum::Distance: return a.m_flDistTo < b.m_flDistTo;
+			default: return false;
+			}
+		});
 }
 
-void CAimbotGlobal::SortTargetsPre(std::vector<Target_t>& vTargets, int iMethod)
-{
-	switch (iMethod)
-	{
-	case Vars::Aimbot::General::TargetSelectionEnum::FOV:
-		std::sort(vTargets.begin(), vTargets.end(), [&](const Target_t& a, const Target_t& b) -> bool
-			{
-				return a.m_flFOVTo < b.m_flFOVTo;
-			});
-		break;
-	case Vars::Aimbot::General::TargetSelectionEnum::Distance:
-	case Vars::Aimbot::General::TargetSelectionEnum::Hybrid:
-		std::sort(vTargets.begin(), vTargets.end(), [&](const Target_t& a, const Target_t& b) -> bool
-			{
-				return a.m_flDistTo < b.m_flDistTo;
-			});
-		break;
-	}
-}
-
-void CAimbotGlobal::SortTargetsPost(std::vector<Target_t>& vTargets, int iMethod)
-{
-	switch (iMethod)
-	{
-	case Vars::Aimbot::General::TargetSelectionEnum::Hybrid:
-		std::sort(vTargets.begin(), vTargets.end(), [&](const Target_t& a, const Target_t& b) -> bool
-			{
-				return a.m_flFOVTo < b.m_flFOVTo;
-			});
-		break;
-	}
-
+void CAimbotGlobal::SortPriority(std::vector<Target_t>& vTargets)
+{	// Sort by priority
 	std::sort(vTargets.begin(), vTargets.end(), [&](const Target_t& a, const Target_t& b) -> bool
 		{
 			return a.m_nPriority > b.m_nPriority;
@@ -63,7 +36,7 @@ bool CAimbotGlobal::ShouldTargetPriority(int iPriority)
 }
 
 // this won't prevent shooting bones outside of fov
-bool CAimbotGlobal::PlayerBoneInFOV(CTFPlayer* pTarget, Vec3 vLocalPos, Vec3 vLocalAngles, float& flFOVTo, Vec3& vPos, Vec3& vAngleTo, int iHitboxes)
+bool CAimbotGlobal::PlayerBoneInFOV(CTFPlayer* pTarget, Vec3 vLocalPos, Vec3 vLocalAngles, float& flFOVTo, Vec3& vPos, Vec3& vAngleTo, float flFOV, int iHitboxes)
 {
 	matrix3x4* aBones = F::Backtrack.GetBones(pTarget);
 	if (!Vars::Visuals::Removals::Interpolation.Value)
@@ -103,7 +76,7 @@ bool CAimbotGlobal::PlayerBoneInFOV(CTFPlayer* pTarget, Vec3 vLocalPos, Vec3 vLo
 		}
 	}
 
-	return flMinFOV < Vars::Aimbot::General::AimFOV.Value;
+	return flMinFOV < flFOV;
 }
 
 bool CAimbotGlobal::IsHitboxValid(CBaseEntity* pEntity, int nHitbox, int iHitboxes)
@@ -363,7 +336,6 @@ bool CAimbotGlobal::ShouldHoldAttack(CTFWeaponBase* pWeapon)
 bool CAimbotGlobal::ValidBomb(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CBaseEntity* pBomb)
 {
 	Vec3 vOrigin = pBomb->m_vecOrigin();
-	float flRadiusSqr = powf(300.f, 2);
 
 	CBaseEntity* pEntity;
 	for (CEntitySphereQuery sphere(vOrigin, 300.f);
@@ -375,7 +347,7 @@ bool CAimbotGlobal::ValidBomb(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CBaseEn
 			continue;
 
 		Vec3 vPos; pEntity->m_Collision()->CalcNearestPoint(vOrigin, &vPos);
-		if (vOrigin.DistToSqr(vPos) > flRadiusSqr)
+		if (vOrigin.DistTo(vPos) > 300.f)
 			continue;
 
 		if (pEntity->IsPlayer() || pEntity->IsBuilding() || pEntity->IsNPC())
@@ -391,4 +363,25 @@ bool CAimbotGlobal::ValidBomb(CTFPlayer* pLocal, CTFWeaponBase* pWeapon, CBaseEn
 	}
 
 	return false;
+}
+
+std::vector<Target_t> CAimbotGlobal::ManageTargets(std::vector<Target_t>(*GetTargets)(CTFPlayer* pLocal, CTFWeaponBase* pWeapon), CTFPlayer* pLocal, CTFWeaponBase* pWeapon, int iMethod, int iMaxTargets)
+{
+	// 1. Call the provided function to gather potential targets
+	auto vTargets = GetTargets(pLocal, pWeapon);
+
+	if (vTargets.empty())
+		return {};
+
+	// 2. Sort targets by the preferred method (FOV or Distance)
+	SortTargets(vTargets, iMethod);
+
+	// 3. Clamp the list to the maximum allowed targets
+	if (vTargets.size() > static_cast<size_t>(iMaxTargets))
+		vTargets.resize(iMaxTargets);
+
+	// 4. Re-sort the filtered list by Priority (so prioritized players are hit first)
+	SortPriority(vTargets);
+
+	return vTargets;
 }

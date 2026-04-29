@@ -7,14 +7,15 @@
 #include "Fonts/CascadiaMono/CascadiaMono.h"
 #include "Fonts/Roboto/RobotoMedium.h"
 #include "Fonts/Roboto/RobotoBlack.h"
+#include "Fonts/TahomaPixelated/v2-fs-tahoma-8px.h"
 #include "Menu/Menu.h"
 
 void CRender::Render(IDirect3DDevice9* pDevice)
 {
 	static std::once_flag tFlag; std::call_once(tFlag, [&]
-	{
-		Initialize(pDevice);
-	});
+		{
+			Initialize(pDevice);
+		});
 
 	LoadColors();
 
@@ -35,9 +36,9 @@ void CRender::Render(IDirect3DDevice9* pDevice)
 void CRender::LoadColors()
 {
 	auto fColorToVec = [](Color_t tColor) -> ImColor
-	{
-		return { tColor.r / 255.f, tColor.g / 255.f, tColor.b / 255.f, tColor.a / 255.f };
-	};
+		{
+			return { tColor.r / 255.f, tColor.g / 255.f, tColor.b / 255.f, tColor.a / 255.f };
+		};
 
 	Accent = fColorToVec(Vars::Menu::Theme::Accent.Value);
 	Background0 = fColorToVec(Vars::Menu::Theme::Background.Value);
@@ -80,20 +81,11 @@ void CRender::LoadFonts()
 		io.Fonts->Clear();
 
 	ImFontConfig tFontConfig;
-	tFontConfig.OversampleH = 2;
-#ifndef AMALGAM_CUSTOM_FONTS
-FontSmall = io.Fonts->AddFontFromFileTTF(R"(C:\Windows\Fonts\arial.ttf)", H::Draw.Scale(11), &tFontConfig); //dropdown lists headers and binds list
-	FontRegular = io.Fonts->AddFontFromFileTTF(R"(C:\Windows\Fonts\tahoma.ttf)", H::Draw.Scale(13), &tFontConfig); //rest
-	FontBold = io.Fonts->AddFontFromFileTTF(R"(C:\Windows\Fonts\tahoma.ttf)", H::Draw.Scale(13), &tFontConfig); //MAIN TABS AND CATEGORIES (example : general, backtrack, etc)
-	FontLarge = io.Fonts->AddFontFromFileTTF(R"(C:\Windows\Fonts\arial.ttf)", H::Draw.Scale(15), &tFontConfig); // "Binds" title window
-	FontMono = io.Fonts->AddFontFromFileTTF(R"(C:\Windows\Fonts\cour.ttf)", H::Draw.Scale(15), &tFontConfig); // windows mono font installed by default
-#else
-	FontSmall = io.Fonts->AddFontFromMemoryCompressedTTF(RobotoMedium_compressed_data, RobotoMedium_compressed_size, H::Draw.Scale(12), &tFontConfig);
-	FontRegular = io.Fonts->AddFontFromMemoryCompressedTTF(RobotoMedium_compressed_data, RobotoMedium_compressed_size, H::Draw.Scale(13), &tFontConfig);
-	FontBold = io.Fonts->AddFontFromMemoryCompressedTTF(RobotoBlack_compressed_data, RobotoBlack_compressed_size, H::Draw.Scale(13), &tFontConfig);
-	FontLarge = io.Fonts->AddFontFromMemoryCompressedTTF(RobotoMedium_compressed_data, RobotoMedium_compressed_size, H::Draw.Scale(15), &tFontConfig);
-	FontMono = io.Fonts->AddFontFromMemoryCompressedTTF(CascadiaMono_compressed_data, CascadiaMono_compressed_size, H::Draw.Scale(15), &tFontConfig);
-#endif
+	FontSmall = io.Fonts->AddFontFromMemoryTTF(v2_fs_tahoma_8px, sizeof(v2_fs_tahoma_8px), H::Draw.Scale(13), &tFontConfig);
+	FontRegular = io.Fonts->AddFontFromMemoryTTF(v2_fs_tahoma_8px, sizeof(v2_fs_tahoma_8px), H::Draw.Scale(13), &tFontConfig);
+	FontBold = io.Fonts->AddFontFromMemoryTTF(v2_fs_tahoma_8px, sizeof(v2_fs_tahoma_8px), H::Draw.Scale(13), &tFontConfig);
+	FontLarge = io.Fonts->AddFontFromMemoryTTF(v2_fs_tahoma_8px, sizeof(v2_fs_tahoma_8px), H::Draw.Scale(13), &tFontConfig);
+	FontMono = io.Fonts->AddFontFromMemoryTTF(v2_fs_tahoma_8px, sizeof(v2_fs_tahoma_8px), H::Draw.Scale(13), &tFontConfig);
 
 	ImFontConfig tIconConfig;
 	tIconConfig.PixelSnapH = true;

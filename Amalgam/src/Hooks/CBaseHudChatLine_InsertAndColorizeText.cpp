@@ -1,6 +1,7 @@
 #include "../SDK/SDK.h"
 
 #include "../Features/Players/PlayerUtils.h"
+#include "../Features/Misc/ChatTranslator/ChatTranslator.h"
 
 MAKE_SIGNATURE(CBaseHudChatLine_InsertAndColorizeText, "client.dll", "44 89 44 24 ? 55 53 56 57", 0x0);
 
@@ -14,6 +15,7 @@ MAKE_HOOK(CBaseHudChatLine_InsertAndColorizeText, S::CBaseHudChatLine_InsertAndC
 		return CALL_ORIGINAL(rcx, buf, clientIndex);
 
 	std::string sMessage = SDK::ConvertWideToUTF8(buf);
+	F::ChatTranslator.OnChat(clientIndex, sMessage.c_str());
 	const char* sName = pResource->GetName(clientIndex);
 	auto iFind = sMessage.find(sName);
 
@@ -21,7 +23,7 @@ MAKE_HOOK(CBaseHudChatLine_InsertAndColorizeText, S::CBaseHudChatLine_InsertAndC
 	if (const char* sReplace = F::PlayerUtils.GetPlayerName(clientIndex, nullptr, &iType))
 	{
 		if (iFind != std::string::npos)
-			sMessage = sMessage.replace(std::max(int(iFind) - 1, 0), strlen(sName) + 1, std::format("\x3{}\x1", sReplace));
+			sMessage = sMessage.replace(std::max(iFind - 1, 0ui64), strlen(sName) + 1, std::format("\x3{}\x1", sReplace));
 		sName = sReplace;
 	}
 
@@ -42,9 +44,9 @@ MAKE_HOOK(CBaseHudChatLine_InsertAndColorizeText, S::CBaseHudChatLine_InsertAndC
 
 		if (!sTag.empty())
 		{
-			if (iFind != std::string::npos && iType == NameTypeEnum::None)
-				sMessage = sMessage.replace(std::max(int(iFind) - 1, 0), strlen(sName) + 1, std::format("\x3{}\x1", sName));
-			sMessage.insert(0, std::format("{}[{}] ", cColor, sTag));
+			if (iFind != std::string::npos)
+				sMessage.insert(iFind + strlen(sName), "\x1");
+			sMessage.insert(0, std::format("{}[{}] \x3", cColor, sTag));
 		}
 	}
 

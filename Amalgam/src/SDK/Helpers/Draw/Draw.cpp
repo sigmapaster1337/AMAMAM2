@@ -555,3 +555,45 @@ void CDraw::RenderWireframeSphere(const Vector& vCenter, float flRadius, int nTh
 
 	RenderSphere(vCenter, flRadius, nTheta, nPhi, tColor, pMaterial);
 }
+
+void CDraw::RenderClippedSphere(const std::vector<Vec3>& vVertices, int nTheta, int nPhi, Color_t tColor, bool bZBuffer)
+{
+	if (!tColor.a || vVertices.empty()) return;
+
+	for (int lat = 0; lat <= nPhi; lat++) {
+		for (int lon = 0; lon < nTheta; lon++) {
+			int idx1 = lat * (nTheta + 1) + lon;
+			int idx2 = lat * (nTheta + 1) + (lon + 1);
+			if (idx1 < vVertices.size() && idx2 < vVertices.size())
+				RenderLine(vVertices[idx1], vVertices[idx2], tColor, bZBuffer);
+		}
+	}
+
+	for (int lon = 0; lon <= nTheta; lon++) {
+		for (int lat = 0; lat < nPhi; lat++) {
+			int idx1 = lat * (nTheta + 1) + lon;
+			int idx2 = (lat + 1) * (nTheta + 1) + lon;
+			if (idx1 < vVertices.size() && idx2 < vVertices.size())
+				RenderLine(vVertices[idx1], vVertices[idx2], tColor, bZBuffer);
+		}
+	}
+}
+
+void CDraw::RenderFilledClippedSphere(const std::vector<Vec3>& vVertices, int nTheta, int nPhi, Color_t tColor, bool bZBuffer)
+{
+	if (!tColor.a || vVertices.empty()) return;
+
+	for (int lat = 0; lat < nPhi; lat++) {
+		for (int lon = 0; lon < nTheta; lon++) {
+			int idx1 = lat * (nTheta + 1) + lon;
+			int idx2 = lat * (nTheta + 1) + (lon + 1);
+			int idx3 = (lat + 1) * (nTheta + 1) + lon;
+			int idx4 = (lat + 1) * (nTheta + 1) + (lon + 1);
+
+			if (idx4 >= vVertices.size()) continue;
+
+			RenderTriangle(vVertices[idx1], vVertices[idx2], vVertices[idx3], tColor, bZBuffer);
+			RenderTriangle(vVertices[idx2], vVertices[idx4], vVertices[idx3], tColor, bZBuffer);
+		}
+	}
+}

@@ -11,6 +11,9 @@ struct Projectile_t
 	Vec3 m_vNormal = { 0, 0, 1 };
 	Color_t m_tColor = {};
 	int m_iFlags = 0b0;
+
+	float m_flSpawnTime = 0.f;
+	bool m_bCritical = false;
 };
 
 struct DrawBoxFade_t : public DrawBox_t

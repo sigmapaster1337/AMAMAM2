@@ -17,6 +17,48 @@ MAKE_SIGNATURE(CBaseAnimating_DrawServerHitboxes, "server.dll", "44 88 44 24 ? 5
 MAKE_SIGNATURE(NDebugOverlay_BoxAngles, "server.dll", "48 83 EC ? 4C 8B D9 48 8B 0D ? ? ? ? 48 85 C9 74 ? 8B 84 24 ? ? ? ? F3 0F 10 84 24 ? ? ? ? 4C 8B 11 F3 0F 11 44 24 ? 89 44 24 ? 8B 84 24 ? ? ? ? 89 44 24 ? 8B 84 24 ? ? ? ? 89 44 24 ? 8B 84 24 ? ? ? ? 89 44 24 ? 4C 89 4C 24", 0x0);
 MAKE_SIGNATURE(CBaseAnimating_DrawServerHitboxes_BoxAngles_Call, "server.dll", "8B 84 24 ? ? ? ? 49 83 C6", 0x0);
 
+static std::vector<Vec3> ClippedSphereTrace(Vec3 vOrigin, float flRadius, Vec3 vNormal, bool bTrace, int nTheta, int nPhi)
+{
+	if (!flRadius) return {};
+
+	std::vector<Vec3> vVertices;
+	Vec3 vAngles = Math::VectorAngles(vNormal);
+	Vec3 vForward, vRight, vUp;
+	Math::AngleVectors(vAngles, &vForward, &vRight, &vUp);
+
+	for (int lat = 0; lat <= nPhi; lat++)
+	{
+		float theta = (Math::PI * lat) / nPhi;
+		float sinTheta = sin(theta);
+		float cosTheta = cos(theta);
+
+		for (int lon = 0; lon <= nTheta; lon++)
+		{
+			float phi = (2 * Math::PI * lon) / nTheta;
+			float sinPhi = sin(phi);
+			float cosPhi = cos(phi);
+
+			Vec3 vLocalPoint = {
+				flRadius * sinTheta * cosPhi,
+				flRadius * sinTheta * sinPhi,
+				flRadius * cosTheta
+			};
+
+			Vec3 vWorldPoint = vOrigin + vRight * vLocalPoint.x + vUp * vLocalPoint.y + vForward * vLocalPoint.z;
+
+			if (bTrace)
+			{
+				CGameTrace trace;
+				CTraceFilterWorldAndPropsOnly filter;
+				SDK::Trace(vOrigin, vWorldPoint, MASK_SHOT, &filter, &trace);
+				vWorldPoint = trace.endpos;
+			}
+			vVertices.push_back(vWorldPoint);
+		}
+	}
+	return vVertices;
+}
+
 static std::vector<Vec3> SplashTrace(Vec3 vOrigin, float flRadius, Vec3 vNormal = { 0, 0, 1 }, bool bTrace = true, int iSegments = 100)
 {
 	if (!flRadius)
@@ -519,111 +561,68 @@ std::vector<DrawBox_t> CVisuals::GetHitboxes(matrix3x4* aBones, CBaseAnimating* 
 
 void CVisuals::DrawEffects()
 {
-	// === Bullet Tracers with smooth fadeout ===
-	for (auto it = m_vLines.begin(); it != m_vLines.end();)
-	{
+	for (auto it = m_vLines.begin(); it != m_vLines.end();) {
 		auto& tLine = *it;
 		float flRemaining = tLine.m_flTime - I::GlobalVars->curtime;
-
-		if (flRemaining <= 0.f)
-		{
-			it = m_vLines.erase(it);
-			continue;
-		}
-
-		float flAlphaFactor = 1.f;
-		const float flFadeout = Vars::Visuals::Line::Fadeout.Value;
-
-		if (flFadeout > 0.f && flRemaining < flFadeout)
-			flAlphaFactor = flRemaining / flFadeout;   // smooth fade from 1.0 → 0.0
-
-		Color_t tFaded = tLine.m_tColor;
-		tFaded.a = static_cast<byte>(tFaded.a * flAlphaFactor);
-
+		if (flRemaining <= 0.f) { it = m_vLines.erase(it); continue; }
+		float flAlphaFactor = std::clamp(flRemaining / Vars::Visuals::Line::Fadeout.Value, 0.f, 1.f);
+		Color_t tFaded = tLine.m_tColor; tFaded.a = static_cast<byte>(tFaded.a * flAlphaFactor);
 		H::Draw.RenderLine(tLine.m_paOrigin.first, tLine.m_paOrigin.second, tFaded, tLine.m_bZBuffer);
-
 		++it;
 	}
-	// === Only Bullet Tracer Boxes - smooth fade with their lines ===
-	for (auto it = m_vBulletBoxes.begin(); it != m_vBulletBoxes.end();)
-	{
+
+	for (auto it = m_vBulletBoxes.begin(); it != m_vBulletBoxes.end();) {
 		auto& tBox = *it;
 		float flRemaining = tBox.m_flTime - I::GlobalVars->curtime;
-
-		if (flRemaining <= 0.f)
-		{
-			it = m_vBulletBoxes.erase(it);
-			continue;
-		}
-
-		float flAlphaFactor = 1.f;
-		const float flFadeout = Vars::Visuals::Line::Fadeout.Value;
-
-		if (flFadeout > 0.f && flRemaining < flFadeout)
-			flAlphaFactor = flRemaining / flFadeout;   // smooth fade
-
-		Color_t tEdgeFaded = tBox.m_tColorEdge;
-		if (tEdgeFaded.a)
-			tEdgeFaded.a = static_cast<byte>(tEdgeFaded.a * flAlphaFactor);
-
-		Color_t tFaceFaded = tBox.m_tColorFace;
-		if (tFaceFaded.a)
-			tFaceFaded.a = static_cast<byte>(tFaceFaded.a * flAlphaFactor);
-
-		if (tFaceFaded.a)
-			H::Draw.RenderBox(tBox.m_vOrigin, tBox.m_vMins, tBox.m_vMaxs, tBox.m_vAngles, tFaceFaded, tBox.m_bZBuffer);
-
-		if (tEdgeFaded.a)
-			H::Draw.RenderWireframeBox(tBox.m_vOrigin, tBox.m_vMins, tBox.m_vMaxs, tBox.m_vAngles, tEdgeFaded, tBox.m_bZBuffer);
-
+		if (flRemaining <= 0.f) { it = m_vBulletBoxes.erase(it); continue; }
+		float flAlphaFactor = std::clamp(flRemaining / Vars::Visuals::Line::Fadeout.Value, 0.f, 1.f);
+		Color_t tEdge = tBox.m_tColorEdge; tEdge.a = static_cast<byte>(tEdge.a * flAlphaFactor);
+		Color_t tFace = tBox.m_tColorFace; tFace.a = static_cast<byte>(tFace.a * flAlphaFactor);
+		if (tFace.a) H::Draw.RenderBox(tBox.m_vOrigin, tBox.m_vMins, tBox.m_vMaxs, tBox.m_vAngles, tFace, tBox.m_bZBuffer);
+		if (tEdge.a) H::Draw.RenderWireframeBox(tBox.m_vOrigin, tBox.m_vMins, tBox.m_vMaxs, tBox.m_vAngles, tEdge, tBox.m_bZBuffer);
 		++it;
 	}
-	for (auto& tPath : G::PathStorage)
-	{
-		bool bTimed = tPath.m_flTime < 0.f;
-		if (!bTimed && tPath.m_flTime < I::GlobalVars->curtime)
-			continue;
 
+	for (auto& tPath : G::PathStorage) {
+		if (tPath.m_flTime >= 0.f && tPath.m_flTime < I::GlobalVars->curtime) continue;
 		H::Draw.RenderPath(tPath.m_vPath, tPath.m_tColor, tPath.m_bZBuffer, tPath.m_iStyle, tPath.m_flTime);
 	}
-	for (auto& tBox : G::BoxStorage)
-	{
-		if (tBox.m_flTime < I::GlobalVars->curtime)
-			continue;
 
+	for (auto& tBox : G::BoxStorage) {
+		if (tBox.m_flTime < I::GlobalVars->curtime) continue;
 		H::Draw.RenderBox(tBox.m_vOrigin, tBox.m_vMins, tBox.m_vMaxs, tBox.m_vAngles, tBox.m_tColorFace, tBox.m_bZBuffer);
 		H::Draw.RenderWireframeBox(tBox.m_vOrigin, tBox.m_vMins, tBox.m_vMaxs, tBox.m_vAngles, tBox.m_tColorEdge, tBox.m_bZBuffer);
 	}
-	for (auto& tSphere : G::SphereStorage)
-	{
-		if (tSphere.m_flTime < I::GlobalVars->curtime)
-			continue;
 
-		H::Draw.RenderSphere(tSphere.m_vOrigin, tSphere.m_flRadius, tSphere.m_nTheta, tSphere.m_nPhi, tSphere.m_tColorFace, tSphere.m_bZBuffer);
-		H::Draw.RenderWireframeSphere(tSphere.m_vOrigin, tSphere.m_flRadius, tSphere.m_nTheta, tSphere.m_nPhi, tSphere.m_tColorEdge, tSphere.m_bZBuffer);
+	struct SphereInfo_t { Vec3 m_vOrigin; float m_flRadius; };
+	std::vector<SphereInfo_t> vAllSpheres;
+	for (auto& tSphere : G::SphereStorage) {
+		if (tSphere.m_flTime >= I::GlobalVars->curtime) vAllSpheres.push_back({ tSphere.m_vOrigin, tSphere.m_flRadius });
 	}
-	for (auto& tSwept : G::SweptStorage)
-	{
-		if (tSwept.m_flTime < I::GlobalVars->curtime)
-			continue;
-
-		H::Draw.RenderWireframeSweptBox(tSwept.m_paOrigin.first, tSwept.m_paOrigin.second, tSwept.m_vMins, tSwept.m_vMaxs, tSwept.m_vAngles, tSwept.m_tColor, tSwept.m_bZBuffer);
-	}
-	for (auto& tTriangle : G::TriangleStorage)
-	{
-		if (tTriangle.m_flTime < I::GlobalVars->curtime)
-			continue;
-
-		H::Draw.RenderTriangle(tTriangle.m_aOrigin[0], tTriangle.m_aOrigin[1], tTriangle.m_aOrigin[2], tTriangle.m_tColor, tTriangle.m_bZBuffer);
-	}
-	if (auto& tPath = F::Aimbot.m_tPath; tPath.m_flTime)
-	{
-		H::Draw.RenderPath(tPath.m_vPath, Vars::Colors::RealPath.Value, true, tPath.m_iStyle, tPath.m_flTime);
-		H::Draw.RenderPath(tPath.m_vPath, Vars::Colors::RealPathIgnoreZ.Value, false, tPath.m_iStyle, tPath.m_flTime);
+	for (auto& [pEnt, tProj] : m_mProjectiles) {
+		if (tProj.m_iFlags & TrajectoryEnum::Radius && tProj.m_iFlags & TrajectoryEnum::Sphere) {
+			const float flDelayTime = TICKS_TO_TIME(1);
+			if (I::GlobalVars->curtime - tProj.m_flSpawnTime >= flDelayTime) {
+				bool bPredict = tProj.m_iFlags & TrajectoryEnum::Predict && !tProj.m_vPath.empty() && tProj.m_flTime;
+				vAllSpheres.push_back({ bPredict ? tProj.m_vPath.back() : pEnt->GetAbsOrigin(), tProj.m_flRadius });
+			}
+		}
 	}
 
-	for (auto& tSightline : m_vSightLines)
-		H::Draw.RenderLine(tSightline.m_vStart, tSightline.m_vEnd, tSightline.m_tColor, tSightline.m_bZBuffer);
+	int iSphereCount = vAllSpheres.size();
+	const float flGlobalAlpha = std::clamp(Vars::Visuals::Simulation::SpheresAlpha.Value / 100.f, 0.f, 1.f);
+
+	for (auto& tSphere : G::SphereStorage) {
+		if (tSphere.m_flTime < I::GlobalVars->curtime) continue;
+		int nTheta = iSphereCount > 20 ? 12 : 18;
+		int nPhi = iSphereCount > 20 ? 8 : 12;
+		auto vClipped = ClippedSphereTrace(tSphere.m_vOrigin, tSphere.m_flRadius, Vec3(0, 0, 1), true, nTheta, nPhi);
+		if (tSphere.m_tColorFace.a) {
+			Color_t fillColor = tSphere.m_tColorFace;
+			fillColor.a = static_cast<int>(fillColor.a * flGlobalAlpha);
+			H::Draw.RenderFilledClippedSphere(vClipped, nTheta, nPhi, fillColor, tSphere.m_bZBuffer);
+		}
+	}
 
 	for (auto& [pEntity, tProjectile] : m_mProjectiles)
 	{
@@ -635,17 +634,71 @@ void CVisuals::DrawEffects()
 
 		if (tProjectile.m_iFlags & TrajectoryEnum::Radius)
 		{
+			const float flDelayTime = TICKS_TO_TIME(1);
+			if (I::GlobalVars->curtime - tProjectile.m_flSpawnTime < flDelayTime) continue;
+
 			Vec3 vOrigin = bPredict ? tProjectile.m_vPath.back() : pEntity->GetAbsOrigin();
 			Vec3 vNormal = bPredict ? tProjectile.m_vNormal : Vec3(0, 0, 1);
 
-			if (!(tProjectile.m_iFlags & TrajectoryEnum::Sphere))
-			{
+			if (!(tProjectile.m_iFlags & TrajectoryEnum::Sphere)) {
 				auto vPoints = SplashTrace(vOrigin, tProjectile.m_flRadius, vNormal, tProjectile.m_iFlags & TrajectoryEnum::Trace);
 				H::Draw.RenderPath(vPoints, tProjectile.m_tColor, bZBuffer, Vars::Visuals::Path::StyleEnum::Line);
 			}
-			else
-				H::Draw.RenderSphere(vOrigin, tProjectile.m_flRadius, 36, 36, tProjectile.m_tColor, bZBuffer);
+			else {
+				static const int qualityMap[] = { 8, 13, 17, 20 };
+				int userQuality = qualityMap[Vars::Visuals::Simulation::SplashSphereQuality.Value];
+				int quality = userQuality;
+				if (iSphereCount > 20) quality = std::min(quality, 8);
+				else if (iSphereCount > 15) quality = std::min(quality, 13);
+				else if (iSphereCount > 10) quality = std::min(quality, 17);
+
+				int nTheta = quality;
+				int nPhi = std::max(quality / 2, 3);
+				auto vClipped = ClippedSphereTrace(vOrigin, tProjectile.m_flRadius, vNormal, true, nTheta, nPhi);
+
+				Group_t* pGrp = nullptr;
+				if (F::Groups.GetGroup(pEntity, pGrp, false) && pGrp) {
+					int iOverlapCount = 0;
+					for (auto& tOther : vAllSpheres) {
+						if (tOther.m_vOrigin == vOrigin && tOther.m_flRadius == tProjectile.m_flRadius) continue;
+						if (vOrigin.DistTo(tOther.m_vOrigin) < (tProjectile.m_flRadius + tOther.m_flRadius)) iOverlapCount++;
+					}
+
+					float flAlphaMultiplier = (iOverlapCount >= 5) ? 0.25f : (iOverlapCount >= 3) ? 0.40f : (iOverlapCount >= 1) ? 0.65f : 1.0f;
+					Color_t fillColor = pGrp->m_tColor;
+					fillColor.a = static_cast<int>(100 * flAlphaMultiplier);
+					Color_t edgeColor = pGrp->m_tColor;
+					edgeColor.a = static_cast<int>(255 * flAlphaMultiplier);
+
+					if (tProjectile.m_bCritical) {
+						float flElapsed = I::GlobalVars->curtime - tProjectile.m_flSpawnTime;
+						if (static_cast<int>(flElapsed / 0.3f) % 2 == 0) {
+							fillColor = Vars::Visuals::Simulation::SplashSphereCritColor.Value;
+							fillColor.a = static_cast<int>(100 * flAlphaMultiplier);
+						}
+					}
+
+					fillColor.a = static_cast<int>(fillColor.a * flGlobalAlpha);
+					edgeColor.a = static_cast<int>(edgeColor.a * flGlobalAlpha);
+
+					H::Draw.RenderFilledClippedSphere(vClipped, nTheta, nPhi, fillColor, bZBuffer);
+					H::Draw.RenderClippedSphere(vClipped, nTheta, nPhi, edgeColor, bZBuffer);
+				}
+			}
 		}
+	}
+
+	for (auto& tSightline : m_vSightLines)
+		H::Draw.RenderLine(tSightline.m_vStart, tSightline.m_vEnd, tSightline.m_tColor, tSightline.m_bZBuffer);
+
+	for (auto& tSwept : G::SweptStorage) {
+		if (tSwept.m_flTime < I::GlobalVars->curtime) continue;
+		H::Draw.RenderWireframeSweptBox(tSwept.m_paOrigin.first, tSwept.m_paOrigin.second, tSwept.m_vMins, tSwept.m_vMaxs, tSwept.m_vAngles, tSwept.m_tColor, tSwept.m_bZBuffer);
+	}
+
+	for (auto& tTriangle : G::TriangleStorage) {
+		if (tTriangle.m_flTime < I::GlobalVars->curtime) continue;
+		H::Draw.RenderTriangle(tTriangle.m_aOrigin[0], tTriangle.m_aOrigin[1], tTriangle.m_aOrigin[2], tTriangle.m_tColor, tTriangle.m_bZBuffer);
 	}
 
 	DrawHitboxes();
@@ -1224,6 +1277,29 @@ void CVisuals::Store()
 						tProjectile.m_iFlags |= (TrajectoryEnum::Radius | TrajectoryEnum::Sphere);
 					}
 				}
+			}
+
+			bool bContains = m_mProjectiles.contains(pEntity);
+
+			if (!bContains)
+				tProjectile.m_flSpawnTime = I::GlobalVars->curtime;
+
+			// Detect critical status (Ported logic)
+			tProjectile.m_bCritical = false;
+			switch (pEntity->GetClassID()) {
+			case ETFClassID::CTFWeaponBaseGrenadeProj:
+			case ETFClassID::CTFGrenadePipebombProjectile:
+			case ETFClassID::CTFProjectile_Jar:
+			case ETFClassID::CTFProjectile_Cleaver:
+				tProjectile.m_bCritical = pEntity->As<CTFWeaponBaseGrenadeProj>()->m_bCritical(); break;
+			case ETFClassID::CTFProjectile_Arrow:
+				tProjectile.m_bCritical = pEntity->As<CTFProjectile_Arrow>()->m_bCritical(); break;
+			case ETFClassID::CTFProjectile_Rocket:
+			case ETFClassID::CTFProjectile_SentryRocket:
+			case ETFClassID::CTFProjectile_SpellFireball:
+				tProjectile.m_bCritical = pEntity->As<CTFProjectile_Rocket>()->m_bCritical(); break;
+			case ETFClassID::CTFProjectile_Flare:
+				tProjectile.m_bCritical = pEntity->As<CTFProjectile_Flare>()->m_bCritical(); break;
 			}
 
 			if (tProjInfo.m_flVelocity < 1.5f)

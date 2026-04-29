@@ -685,12 +685,15 @@ CVarValues(RealPath, "Real path", 0, NOSAVE | DEBUGVAR, nullptr,
 NAMESPACE_END(Prediction)
 
 NAMESPACE_BEGIN(Simulation)
+CVar(SplashSphereQuality, "Splash sphere quality", 1, SLIDER_CLAMP, 0, 3);
+CVar(SpheresAlpha, "Spheres alpha", 100, SLIDER_CLAMP, 0, 100);
+CVar(SplashSphereCritColor, "Crit color", Color_t(255, 255, 255, 255), VISUAL);
 CVarValues(TrajectoryPath, "Trajectory path", 0, VISUAL, nullptr,
 	"Off", "Line", "Separators", "Spaced", "Arrows", "Boxes");
 CVarValues(ShotPath, "Shot path", 0, VISUAL, nullptr,
 	"Off", "Line", "Separators", "Spaced", "Arrows", "Boxes");
 CVarEnum(SplashRadius, "Splash radius", 0b0, VISUAL | DROPDOWN_MULTI, "Off",
-	VA_LIST("Rockets", "Stickies", "Pipes", "Scorch shot", "##Divider", "Trace", "Sphere"),
+	VA_LIST("Rockets", "Stickies", "Pipes", "Scorch shot", "##Divider", "Trace"),
 	Rockets = 1 << 0, Stickies = 1 << 1, Pipes = 1 << 2, ScorchShot = 1 << 3, Trace = 1 << 4, Sphere = 1 << 5,
 	Enabled = Rockets | Stickies | Pipes | ScorchShot);
 CVar(ProjectileCamera, "Projectile camera", false, VISUAL);

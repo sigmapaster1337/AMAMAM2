@@ -1067,7 +1067,16 @@ void CMenu::MenuVisuals(int iTab)
 						SetCursorPosY(GetCursorPosY() - H::Draw.Scale(8));
 
 						FDropdown("Flags", &tGroup.m_iTrajectory, { "Predict", "##Divider", "Radius", "Trace", "Sphere", "##Divider", "Path" }, { TrajectoryEnum::Predict, TrajectoryEnum::Radius, TrajectoryEnum::Trace, TrajectoryEnum::Sphere, TrajectoryEnum::Path }, FDropdownEnum::Multi | FDropdownEnum::NoSanitization);
-						FToggle("Ignore Z", &tGroup.m_iTrajectory, SightlinesEnum::IgnoreZ);
+
+						PushTransparent(!(tGroup.m_iTrajectory & TrajectoryEnum::Sphere));
+						{
+							FSlider(Vars::Visuals::Simulation::SplashSphereQuality, FSliderEnum::Clamp);
+							FSlider(Vars::Visuals::Simulation::SpheresAlpha, FSliderEnum::Clamp, "%i%%");
+							FColorPicker(Vars::Visuals::Simulation::SplashSphereCritColor, FColorPickerEnum::Left);
+						}
+						PopTransparent();
+
+						FToggle("Ignore Z", &tGroup.m_iTrajectory, TrajectoryEnum::IgnoreZ);
 
 						EndPopup();
 					}

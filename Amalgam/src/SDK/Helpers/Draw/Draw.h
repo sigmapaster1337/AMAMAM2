@@ -76,6 +76,9 @@ public:
 	Vec2 GetTextSize(const char* text, const Font_t& tFont);
 	Vec2 GetTextSize(const wchar_t* text, const Font_t& tFont);
 
+	void RenderClippedSphere(const std::vector<Vec3>& vVertices, int nTheta, int nPhi, Color_t tColor, bool bZBuffer = false);
+	void RenderFilledClippedSphere(const std::vector<Vec3>& vVertices, int nTheta, int nPhi, Color_t tColor, bool bZBuffer = false);
+
 	void String(const Font_t& tFont, int x, int y, Color_t tColor, EAlign eAlign, const char* str);
 	void String(const Font_t& tFont, int x, int y, Color_t tColor, EAlign eAlign, const wchar_t* wstr);
 	void StringOutlined(const Font_t& tFont, int x, int y, Color_t tColor, Color_t tColorOut, EAlign eAlign, const char* str, bool bAlpha = false);

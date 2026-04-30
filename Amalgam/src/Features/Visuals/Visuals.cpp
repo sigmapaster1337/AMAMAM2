@@ -1244,8 +1244,14 @@ void CVisuals::Store()
 			if (!F::Groups.GetGroup(pEntity, pGroup, false) || !(pGroup->m_iTrajectory & TrajectoryEnum::Enabled))
 				continue;
 
+			// FIX: Check if it's new BEFORE accessing the map entry
+			bool bIsNew = !m_mProjectiles.contains(pEntity);
 			Projectile_t& tProjectile = m_mProjectiles[pEntity];
-			mProjectiles[pEntity];
+
+			if (bIsNew)
+				tProjectile.m_flSpawnTime = I::GlobalVars->curtime;
+
+			mProjectiles[pEntity]; // Mark as active for cleanup later
 
 			ProjectileInfo tProjInfo = {};
 			F::ProjSim.GetInfo(pEntity, tProjInfo);
@@ -1255,36 +1261,25 @@ void CVisuals::Store()
 			tProjectile.m_flRadius = F::AimbotProjectile.GetSplashRadius(pEntity, tProjInfo.m_pWeapon, tProjInfo.m_pOwner);
 
 			if (tProjInfo.m_pWeapon) {
-				// Filter out training weapons - don't show spheres
 				if (tProjInfo.m_pWeapon->m_iItemDefinitionIndex() == 237 ||  // Rocket Jumper
 					tProjInfo.m_pWeapon->m_iItemDefinitionIndex() == 265) {  // Sticky Jumper
-					tProjectile.m_flRadius = 0.f;  // Set to 0 to prevent rendering
+					tProjectile.m_flRadius = 0.f;
 				}
 			}
 
-			// Add sphere to grounded pipes
+			// Add sphere to grounded pipes logic
 			if (pEntity->GetClassID() == ETFClassID::CTFGrenadePipebombProjectile) {
 				auto pPipe = pEntity->As<CTFGrenadePipebombProjectile>();
-
-				// Only show sphere for regular pipes (not stickies) that have touched ground
 				if (!pPipe->HasStickyEffects() && pPipe->m_bTouched()) {
-					// Check if velocity is very low (essentially stationary)
 					if (pPipe->m_vecVelocity().Length() < 10.f) {
-						// Force sphere rendering for stationary pipes
 						if (!tProjectile.m_flRadius) {
-							tProjectile.m_flRadius = 146.f; // Default pipe splash radius
+							tProjectile.m_flRadius = 146.f;
 						}
 						tProjectile.m_iFlags |= (TrajectoryEnum::Radius | TrajectoryEnum::Sphere);
 					}
 				}
 			}
 
-			bool bContains = m_mProjectiles.contains(pEntity);
-
-			if (!bContains)
-				tProjectile.m_flSpawnTime = I::GlobalVars->curtime;
-
-			// Detect critical status (Ported logic)
 			tProjectile.m_bCritical = false;
 			switch (pEntity->GetClassID()) {
 			case ETFClassID::CTFWeaponBaseGrenadeProj:

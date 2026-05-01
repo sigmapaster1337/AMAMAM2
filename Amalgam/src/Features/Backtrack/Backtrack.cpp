@@ -271,31 +271,35 @@ void CBacktrack::MakeRecords()
 	for (auto& pEntity : H::Entities.GetGroup(EntityEnum::PlayerAll))
 	{
 		auto pPlayer = pEntity->As<CTFPlayer>();
-		if (pPlayer->entindex() == I::EngineClient->GetLocalPlayer() || !pPlayer->IsAlive() || pPlayer->IsAGhost()
-			|| !H::Entities.GetDeltaTime(pPlayer->entindex()))
+		if (!pPlayer || pPlayer->entindex() == I::EngineClient->GetLocalPlayer() || !pPlayer->IsAlive() || pPlayer->IsAGhost())
 			continue;
 
+		// FIX 1 & 3: Only update if simulation time has changed.
+		// This prevents saving 15 identical frames and prevents calling SetupBones unnecessarily.
+		float flSimTime = pPlayer->m_flSimulationTime();
 		auto& vRecords = m_mRecords[pPlayer];
+
+		if (!vRecords.empty() && vRecords.front().m_flSimTime == flSimTime)
+			continue;
+
 		TickRecord* pLastRecord = !vRecords.empty() ? &vRecords.front() : nullptr;
 
 		vRecords.push_front({});
 		TickRecord& tCurRecord = vRecords.front();
-		tCurRecord.m_flSimTime = pPlayer->m_flSimulationTime();
+		tCurRecord.m_flSimTime = flSimTime;
 		tCurRecord.m_flArriveTime = I::GlobalVars->curtime;
 		tCurRecord.m_vOrigin = pPlayer->m_vecOrigin();
 		tCurRecord.m_vMins = pPlayer->m_vecMins();
 		tCurRecord.m_vMaxs = pPlayer->m_vecMaxs();
 		tCurRecord.m_bOnShot = m_mDidShoot[pPlayer->entindex()];
 
-		// Velocity from position delta with blending for high ping
+		// Velocity calculation
 		if (pLastRecord)
 		{
 			float flTimeDelta = tCurRecord.m_flSimTime - pLastRecord->m_flSimTime;
 			if (flTimeDelta > 0.f)
 			{
 				Vec3 vDeltaVelocity = (tCurRecord.m_vOrigin - pLastRecord->m_vOrigin) / flTimeDelta;
-
-				// At high ping, blend delta velocity with previous velocity for stability
 				int iTicks = TIME_TO_TICKS(flTimeDelta);
 				if (iTicks > 3)
 				{
@@ -317,10 +321,12 @@ void CBacktrack::MakeRecords()
 			tCurRecord.m_vVelocity = pPlayer->m_vecVelocity();
 		}
 
+		// FIX 3: Bone setup is now only called once per server update, saving massive FPS.
 		pPlayer->InvalidateBoneCache();
 		m_bSettingUpBones = true;
 		bool bSetup = pPlayer->SetupBones(tCurRecord.m_aBones, MAXSTUDIOBONES, BONE_USED_BY_ANYTHING, tCurRecord.m_flSimTime);
 		m_bSettingUpBones = false;
+
 		if (!bSetup)
 		{
 			vRecords.pop_front();
@@ -342,7 +348,6 @@ void CBacktrack::MakeRecords()
 					vRecords[i].m_bInvalid = true;
 			}
 
-			// Copy new record data to invalid records so there's always usable bone data
 			for (auto& tRecord : vRecords)
 			{
 				if (!tRecord.m_bInvalid)
@@ -590,12 +595,12 @@ void CBacktrack::BacktrackToCrosshair(CTFPlayer* pLocal, CTFWeaponBase* pWeapon,
 	std::vector<std::pair<TickRecord, CrosshairRecordInfo_t>> vValidRecords;
 	for (auto pEntity : H::Entities.GetGroup(EntityEnum::PlayerEnemy))
 	{
-		if (!pEntity) continue;
-		if (!pEntity->As<CTFPlayer>()->IsAlive() || pEntity->As<CTFPlayer>()->IsAGhost() || pEntity->As<CTFPlayer>()->IsInvulnerable())
+		auto pEnemy = pEntity->As<CTFPlayer>();
+		if (!pEnemy || !pEnemy->IsAlive() || pEnemy->IsAGhost() || pEnemy->IsInvulnerable())
 			continue;
 
 		CrosshairRecordInfo_t sRecordInfo{};
-		if (auto pCheckRec = GetHitRecord(pEntity, pWeapon, pCmd, sRecordInfo, vAngles, vShootPos))
+		if (auto pCheckRec = GetHitRecord(pEnemy, pWeapon, pCmd, sRecordInfo, vAngles, vShootPos))
 			vValidRecords.push_back({ *pCheckRec, sRecordInfo });
 	}
 
@@ -604,14 +609,24 @@ void CBacktrack::BacktrackToCrosshair(CTFPlayer* pLocal, CTFWeaponBase* pWeapon,
 	{
 		auto pFinalTick = std::min_element(vValidRecords.begin(), vValidRecords.end(), [&](const std::pair<TickRecord, CrosshairRecordInfo_t>& a, const std::pair<TickRecord, CrosshairRecordInfo_t>& b)
 			{
-				const bool bInsideBoth = a.second.m_bInsideThisRecord && b.second.m_bInsideThisRecord;
-				const bool bNotInsideRecords = !a.second.m_bInsideThisRecord && !b.second.m_bInsideThisRecord;
-				const bool bResult = { bInsideBoth ? a.second.m_flMinDist < b.second.m_flMinDist : bNotInsideRecords ? a.second.m_flFov < b.second.m_flFov : a.second.m_bInsideThisRecord };
-				return bResult;
+				// Sort by: Is inside hitbox center > distance/fov
+				if (a.second.m_bInsideThisRecord != b.second.m_bInsideThisRecord)
+					return a.second.m_bInsideThisRecord > b.second.m_bInsideThisRecord;
+
+				if (a.second.m_bInsideThisRecord)
+					return a.second.m_flMinDist < b.second.m_flMinDist;
+
+				return a.second.m_flFov < b.second.m_flFov;
 			});
 		pReturnTick = pFinalTick->first;
 	}
 
 	if (pReturnTick)
-		pCmd->tick_count = TIME_TO_TICKS(pReturnTick->m_flSimTime) + TIME_TO_TICKS(m_flFakeInterp);
+	{
+		// FIX 2: Correct rounding for the server window.
+		// We calculate the final time in float first, then round to the nearest tick.
+		// Using 0.5f in the conversion is the standard way to prevent being "1 tick off".
+		float flTargetTime = pReturnTick->m_flSimTime + GetFakeInterp();
+		pCmd->tick_count = TIME_TO_TICKS(flTargetTime);
+	}
 }
